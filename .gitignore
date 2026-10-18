@@ -7,3 +7,9 @@ node_modules/
 src/questions.js
 PL-300_Prepare-the-data.html
 /index.html
+
+# Never commit credentials / recovery codes
+Backup-codes*.txt
+*backup-codes*
+*.pem
+*.key
