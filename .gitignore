@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+
+# Private: contain the exam answers. Never commit.
+src/questions.js
+PL-300_Prepare-the-data.html
+/index.html

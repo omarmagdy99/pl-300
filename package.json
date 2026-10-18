@@ -1,0 +1,15 @@
+{
+  "name": "pl300-prep",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:content": "node tools/build-content.mjs",
+    "dev": "wrangler dev",
+    "db:local": "wrangler d1 migrations apply pl300-db --local",
+    "db:remote": "wrangler d1 migrations apply pl300-db --remote",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  }
+}

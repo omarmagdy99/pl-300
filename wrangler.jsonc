@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pl300-prep",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-18",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pl300-db",
+      "database_id": "77be1ef8-a99b-4e70-be9c-5a9e3a625b38",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "ADMIN_EMAILS": "omarmagdy99860@gmail.com"
+  },
+  "observability": { "enabled": true }
+}
