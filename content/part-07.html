@@ -1,0 +1,40 @@
+<div class="crumb">Section 2 · Part 1 of 6</div>
+    <h1>Design a star schema &amp; set properties</h1>
+    <p class="lead">A good model is narrow, clean and shaped like a star. Everything else (DAX, speed, security) gets easier.</p>
+
+    <h2>1. Fact tables and dimension tables</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th></th><th>Fact table</th><th>Dimension table</th></tr>
+      <tr><td><b>Holds</b></td><td>Events / transactions (sales, clicks, shipments)</td><td>Descriptive attributes (customer, product, date, store)</td></tr>
+      <tr><td><b>Columns</b></td><td>Foreign keys + numeric values you aggregate</td><td>One unique key + text attributes used to slice and filter</td></tr>
+      <tr><td><b>Rows</b></td><td>Many (usually the biggest tables)</td><td>Few compared with facts</td></tr>
+      <tr><td><b>Relationship side</b></td><td>“Many”</td><td>“One”</td></tr>
+    </table></div>
+    <p>In a <b>star schema</b> one fact table sits in the middle and dimension tables connect directly to it. A <b>snowflake</b> chains dimensions (Sales → Product → Subcategory → Category). For Power BI, <b>flatten</b> the chain: merge Subcategory and Category into the Product table in Power Query. Fewer relationships means simpler DAX and faster queries.</p>
+    <ul>
+      <li>Avoid one huge flat table that repeats customer / product text on every row (big and slow).</li>
+      <li>Avoid many-to-many relationships between big tables; use a <b>bridge table</b> instead.</li>
+      <li>Build the star in Power Query (shape the data) and verify it in <b>Model view</b>.</li>
+    </ul>
+
+    <h2>2. Column properties (Properties pane in Model or Data view)</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Property</th><th>What it does</th><th>Typical use</th></tr>
+      <tr><td><b>Data type / Format</b></td><td>How values are stored and displayed</td><td>Currency, percentage, date format</td></tr>
+      <tr><td><b>Summarize by</b></td><td>Default aggregation when dragged to a visual</td><td><b>Don’t summarize</b> for IDs and keys, years, ratings</td></tr>
+      <tr><td><b>Sort by column</b></td><td>Sorts one column by another</td><td>Month name sorted by Month number</td></tr>
+      <tr><td><b>Data category</b></td><td>Tells Power BI what the values mean</td><td>City, Country, Latitude, Longitude, Web URL, Image URL (correct maps / links)</td></tr>
+      <tr><td><b>Hide</b> (in report view)</td><td>Removes the field from the Data pane for report authors</td><td>Foreign keys, helper columns. The column stays in the model.</td></tr>
+      <tr><td><b>Display folder</b></td><td>Groups fields in the Data pane</td><td>“Sales measures”, “Dates”</td></tr>
+      <tr><td><b>Description</b></td><td>Tooltip for report authors</td><td>Explain a measure’s definition</td></tr>
+    </table></div>
+    <p>A table also has a name and description. Measures live in a <b>home table</b> (often a dedicated, empty “_Measures” table).</p>
+
+    <div class="note trap"><b class="t">Exam trap</b>Months sorting as April, August, December…? Set <b>Sort by column</b> to the month number. Hiding a column does <b>not</b> delete it: it can still be used in relationships and DAX.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Facts = numbers + foreign keys; dimensions = unique key + descriptions.</li>
+        <li>Flatten snowflakes into a star; avoid many-to-many.</li>
+        <li>Sort by column, Don’t summarize and Data category are the three properties tested most.</li>
+      </ul>
+    </div>

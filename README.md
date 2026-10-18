@@ -19,7 +19,9 @@ Cloudflare Workers (static assets + API) · D1 (SQLite) · no framework, no buil
 | Path | What |
 |---|---|
 | `src/worker.js` | API, auth, grading, gating |
-| `src/content.js` | Study material served per part (after the lock check) |
+| `src/course.js` | Sections, parts and exam ids |
+| `content/part-NN.html` | Study material, one file per part (edit these) |
+| `src/content.js` | Generated from `content/` by `npm run build:content` |
 | `src/questions.example.js` | Template for the question bank |
 | `src/questions.js` | **Private, git-ignored** – questions *with answers* |
 | `public/index.html` | The whole front end (SPA) |
@@ -34,7 +36,7 @@ git-ignored; copy `src/questions.example.js` to `src/questions.js` and add your 
 ```bash
 npm install
 cp src/questions.example.js src/questions.js   # or use your private bank
-npm run db:local
+npm run db:local            # applies all migrations
 npm run dev                                    # http://localhost:8787
 node tools/e2e.mjs                             # optional API tests (local only)
 ```

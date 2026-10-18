@@ -1,0 +1,56 @@
+<div class="crumb">Section 2 · Part 4 of 6</div>
+    <h1>DAX fundamentals: measures &amp; context</h1>
+    <p class="lead">Know what to put in a measure, what to put in a column, and which context DAX is working in.</p>
+
+    <h2>1. Three kinds of calculations</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th></th><th>Calculated column</th><th>Measure</th><th>Calculated table</th></tr>
+      <tr><td><b>Evaluated</b></td><td>Per row, at <b>refresh</b></td><td>At <b>query time</b>, for each cell of a visual</td><td>At refresh</td></tr>
+      <tr><td><b>Stored in model?</b></td><td>Yes (uses memory)</td><td>No (just a formula)</td><td>Yes</td></tr>
+      <tr><td><b>Context</b></td><td><b>Row context</b></td><td><b>Filter context</b></td><td>—</td></tr>
+      <tr><td><b>Use for</b></td><td>Slicing, filtering, sorting, relationship keys</td><td>Aggregations, ratios, KPIs that react to slicers</td><td>Bridge / date tables, Top-N helper tables</td></tr>
+    </table></div>
+    <p>Rule of thumb: <b>if it should change with filters, make a measure</b>. If you need to put it on an axis or in a slicer, make a column (preferably in Power Query or the source).</p>
+
+    <h2>2. Row context and filter context</h2>
+    <ul>
+      <li><b>Row context</b> = “the current row”. It exists in calculated columns and inside iterators (<code>SUMX</code>, <code>AVERAGEX</code>, <code>FILTER</code>).</li>
+      <li><b>Filter context</b> = the set of filters currently applied: slicers, filters pane, the row/column of the visual cell, and relationships.</li>
+    </ul>
+
+    <h2>3. Aggregators and iterators</h2>
+<pre class="code">Total Sales  = <span class="k">SUM</span> ( Sales[Amount] )
+Orders       = <span class="k">COUNTROWS</span> ( Sales )
+Customers    = <span class="k">DISTINCTCOUNT</span> ( Sales[CustomerID] )
+Avg Price    = <span class="k">AVERAGE</span> ( Sales[UnitPrice] )
+
+<span class="c">// iterator: calculates row by row, then sums</span>
+Revenue = <span class="k">SUMX</span> ( Sales, Sales[Quantity] * Sales[UnitPrice] )
+
+<span class="c">// safe division: returns BLANK (or the 3rd argument) when the denominator is 0</span>
+Margin % = <span class="k">DIVIDE</span> ( [Profit], [Revenue] )
+
+<span class="c">// look up a value from the "one" side in a calculated column</span>
+Category = <span class="k">RELATED</span> ( Product[Category] )
+
+Status = <span class="k">SWITCH</span> ( <span class="k">TRUE</span> (), [Margin %] &gt;= 0.3, <span class="s">"High"</span>, [Margin %] &gt;= 0.1, <span class="s">"Medium"</span>, <span class="s">"Low"</span> )</pre>
+    <ul>
+      <li><code>SUM ( Sales[Quantity] * Sales[UnitPrice] )</code> is <b>invalid</b>: <code>SUM</code> takes one column. Use <code>SUMX</code>.</li>
+      <li><code>RELATED</code> follows a relationship from the many side to the one side; <code>RELATEDTABLE</code> goes the other way.</li>
+    </ul>
+
+    <h2>4. Quick measures, implicit vs explicit</h2>
+    <ul>
+      <li><b>Quick measures</b> (right-click a field → New quick measure) generate DAX for common patterns: running total, year-over-year change, weighted average, percent of total.</li>
+      <li><b>Implicit measures</b> appear when you drag a numeric column to a visual. <b>Explicit measures</b> are written by you: reusable and recommended.</li>
+      <li>Reference a measure as <code>[Total Sales]</code> and a column as <code>Table[Column]</code>.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>A calculated column cannot react to slicers (it is computed at refresh). <code>DIVIDE</code> never throws a divide-by-zero error; it returns blank or the alternate result.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Measure = filter context, query time. Column = row context, refresh time.</li>
+        <li>Use <code>SUMX</code> when you must multiply per row before summing.</li>
+        <li>Prefer explicit measures and <code>DIVIDE</code>.</li>
+      </ul>
+    </div>

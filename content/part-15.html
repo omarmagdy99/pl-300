@@ -1,0 +1,42 @@
+<div class="crumb">Section 3 · Part 3 of 6</div>
+    <h1>Drillthrough, tooltips &amp; bookmarks</h1>
+    <p class="lead">Turn a set of charts into a guided story with navigation, detail pages and toggles.</p>
+
+    <h2>1. Hierarchies and drill</h2>
+    <ul>
+      <li>Create a <b>hierarchy</b> in the Data pane by dragging one field onto another (Category → Subcategory → Product). Dates have a built-in Year → Quarter → Month → Day hierarchy.</li>
+      <li>Visual header buttons: <b>Drill down</b>, <b>Drill up</b>, <b>Go to the next level</b> (shows all values one level down), <b>Expand all</b>.</li>
+    </ul>
+
+    <h2>2. Drillthrough</h2>
+    <p>A <b>drillthrough page</b> shows detail for one item (a customer, a product) picked on another page.</p>
+    <ul>
+      <li>Create a page and add the field (for example <i>Customer</i>) to the <b>Drill through</b> well.</li>
+      <li>Users right-click a data point (in any visual that has that field) → <b>Drill through</b> → the page.</li>
+      <li>Power BI adds a <b>Back</b> button automatically. <b>Keep all filters</b> carries the other filters along. Drillthrough can also target another report (<b>cross-report</b>).</li>
+    </ul>
+
+    <h2>3. Report page tooltips</h2>
+    <p>Create a small page, turn on <b>Page information → Allow use as tooltip</b> (tooltip page size), design a mini chart. On a visual, set <b>Format → General → Tooltips → Type: Report page</b> and pick that page: hovering shows the chart.</p>
+
+    <h2>4. Bookmarks, buttons and the Selection pane</h2>
+    <ul>
+      <li><b>Bookmark</b> = a saved state: filters and slicers (<b>Data</b>), visibility of visuals (<b>Display</b>), page (<b>Current page</b>); options apply to <b>all visuals</b> or selected ones.</li>
+      <li>View → <b>Bookmarks</b> pane. After changing a bookmark’s view, choose <b>Update</b>.</li>
+      <li>Use the <b>Selection pane</b> to show / hide visuals and give them clear names.</li>
+      <li><b>Buttons</b>: Back, Bookmark, Page navigation, Q&amp;A, Web URL. Assign the <b>Action</b> (type: Bookmark / Page navigation / Drillthrough…).</li>
+      <li>Chart ↔ table toggle: make two bookmarks (one hides the table, one hides the chart) and attach each to a button.</li>
+      <li>The <b>page navigator</b> and <b>bookmark navigator</b> visuals create menus automatically.</li>
+    </ul>
+
+    <h2>5. Field parameters</h2>
+    <p><b>Modeling → New parameter → Fields</b> creates a table and slicer that lets users switch the <b>measures or fields</b> shown in a visual (for example Sales, Profit or Quantity on the same chart).</p>
+
+    <div class="note trap"><b class="t">Exam trap</b>“Jump to a detail page for the clicked customer” → <b>drillthrough</b> (not a bookmark). “Toggle between two visuals on the same page” → <b>bookmarks + buttons + Selection pane</b>. “Hover shows a chart” → <b>report page tooltip</b>.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Drillthrough = detail page + field in the Drill through well; Back button is automatic.</li>
+        <li>Bookmarks store data, display and page state; buttons trigger them.</li>
+        <li>Field parameters let users choose the measure or field in a visual.</li>
+      </ul>
+    </div>

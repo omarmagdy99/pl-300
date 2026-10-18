@@ -1,0 +1,46 @@
+<div class="crumb">Section 1 · Part 5 of 6</div>
+    <h1>Combine queries &amp; build keys</h1>
+    <p class="lead">Merge = add columns (horizontal). Append = add rows (vertical).</p>
+
+    <h2>1. Merge queries — the join kinds</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Join kind</th><th>Result</th></tr>
+      <tr><td><b>Left Outer</b></td><td>All rows from the first table + matching rows from the second</td></tr>
+      <tr><td><b>Right Outer</b></td><td>All rows from the second table + matching rows from the first</td></tr>
+      <tr><td><b>Full Outer</b></td><td>All rows from both tables</td></tr>
+      <tr><td><b>Inner</b></td><td>Only rows that match in both tables</td></tr>
+      <tr><td><b>Left Anti</b></td><td>Rows in the first table with <b>no</b> match in the second</td></tr>
+      <tr><td><b>Right Anti</b></td><td>Rows in the second table with <b>no</b> match in the first</td></tr>
+    </table></div>
+    <ul>
+      <li>Select the matching column(s) in <i>both</i> tables (Ctrl-click for composite keys).</li>
+      <li>The merge adds a column of type <b>Table</b> — click the expand icon to pick the columns you need.</li>
+      <li><b>Fuzzy matching</b> lets near-matches join (spelling differences).</li>
+      <li><b>Merge Queries as New</b> leaves the originals untouched.</li>
+    </ul>
+
+    <h2>2. Append queries</h2>
+    <p>Stacks rows of tables with the same (or similar) columns. <b>Append Queries</b> changes the current query; <b>Append Queries as New</b> creates a new query. Columns are matched by <i>name</i>; missing ones become null.</p>
+
+    <h2>3. Reference vs Duplicate</h2>
+    <table class="tbl">
+      <tr><th>Reference</th><th>Duplicate</th></tr>
+      <tr><td>New query starts from the <b>output</b> of the original. Changes to the original flow through.</td><td>Copy of all the steps. Independent afterwards.</td></tr>
+    </table>
+    <p>Typical recipe to build a <b>dimension table</b> from a fact table: <i>Reference</i> the fact query → Remove other columns (keep the attributes) → <b>Remove Duplicates</b> on the key.</p>
+
+    <h2>4. Keys and star schema</h2>
+    <ul>
+      <li>The “one” side of a relationship needs a unique, non-empty key (check with column distribution).</li>
+      <li>Create a key by merging columns (<code>Merge Columns</code>) or adding an <b>Index Column</b> (surrogate key).</li>
+      <li>Aim for a <b>star schema</b>: one narrow fact table surrounded by dimension tables.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>“Keep all rows from table A and bring data from B” → <b>Left Outer</b> with A first. “Rows in A that do not exist in B” → <b>Left Anti</b>. Merge adds columns; Append adds rows.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Know all six join kinds and which table must be first.</li>
+        <li>Append as New keeps the sources intact.</li>
+        <li>Reference for dependent queries, Duplicate for independent copies.</li>
+      </ul>
+    </div>

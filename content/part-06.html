@@ -1,0 +1,52 @@
+<div class="crumb">Section 1 · Part 6 of 6</div>
+    <h1>Performance, parameters &amp; M</h1>
+    <p class="lead">Make queries fast, reusable and ready to load.</p>
+
+    <h2>1. Query folding</h2>
+    <p>Query folding means Power Query translates your steps into <b>one native query</b> (for example SQL) that runs at the source, instead of pulling all data and transforming it locally.</p>
+    <ul>
+      <li>Usually folds: filter rows, remove / rename / choose columns, sort, group by, merge/append of the same source.</li>
+      <li>Often <b>breaks</b> folding: <b>Add Index Column</b>, custom functions, merges across different sources, <code>Table.Buffer</code>.</li>
+      <li>Verify: right-click a step → <b>View Native Query</b>. If it is greyed out, the step does <b>not</b> fold.</li>
+      <li>Best practice: put foldable steps (filters, column removal) <b>first</b>.</li>
+    </ul>
+
+    <h2>2. Parameters</h2>
+    <ul>
+      <li><b>Home → Manage Parameters → New Parameter</b>: name, type, suggested values (Any value, List of values, Query), current value.</li>
+      <li>Use them for server / database names, file paths, filter values.</li>
+      <li>After publishing, edit them in the service: <b>Semantic model settings → Parameters</b> (no Desktop needed).</li>
+      <li><code>RangeStart</code> and <code>RangeEnd</code> (Date/Time type, exactly these names) enable <b>incremental refresh</b>.</li>
+    </ul>
+
+    <h2>3. Load options &amp; model size</h2>
+    <ul>
+      <li>Uncheck <b>Enable load</b> on staging / helper queries so they aren't loaded into the model.</li>
+      <li><b>Include in report refresh</b> controls whether the query refreshes.</li>
+      <li>Remove unused columns, filter unneeded rows early, use proper types, avoid high-cardinality columns (split DateTime into Date + Time).</li>
+      <li>Finish with <b>Close &amp; Apply</b>.</li>
+    </ul>
+
+    <h2>4. Reading M</h2>
+<pre class="code"><span class="k">let</span>
+    Source  = Sql.Database(<span class="s">"srv-prod"</span>, <span class="s">"Sales"</span>),
+    Orders  = Source{[Schema=<span class="s">"dbo"</span>, Item=<span class="s">"Orders"</span>]}[Data],
+    Recent  = Table.SelectRows(Orders, <span class="k">each</span> [OrderDate] &gt;= #date(2024,1,1)),
+    Slim    = Table.SelectColumns(Recent, {<span class="s">"OrderID"</span>, <span class="s">"OrderDate"</span>, <span class="s">"Amount"</span>})
+<span class="k">in</span>
+    Slim</pre>
+    <ul>
+      <li><code>let … in</code> — each line is a named <b>step</b>; the last one after <code>in</code> is the result. Applied Steps = these names.</li>
+      <li>M is <b>case-sensitive</b> (<code>Table.SelectRows</code> ≠ <code>table.selectrows</code>).</li>
+      <li><code>each</code> is shorthand for a function with the row as <code>_</code>.</li>
+      <li>M is for <b>loading / shaping</b>; DAX is for <b>calculating</b> in the model — they are not interchangeable.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>Disabling load doesn't delete a query — other queries can still reference it. And “Index column” in a SQL source stops folding for the steps after it.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>View Native Query enabled = step folds.</li>
+        <li>Parameters make Dev → Prod switching and incremental refresh possible.</li>
+        <li>Smaller model: fewer columns, fewer rows, no loading of staging queries.</li>
+      </ul>
+    </div>

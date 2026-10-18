@@ -1,0 +1,45 @@
+<div class="crumb">Section 3 · Part 2 of 6</div>
+    <h1>Filters, slicers &amp; interactions</h1>
+    <p class="lead">Let users narrow the data, and control how visuals react to each other.</p>
+
+    <h2>1. The Filters pane</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Scope</th><th>Applies to</th></tr>
+      <tr><td><b>Visual level</b></td><td>The selected visual only</td></tr>
+      <tr><td><b>Page level</b></td><td>All visuals on the current page</td></tr>
+      <tr><td><b>Report level</b> (“All pages”)</td><td>Every page in the report</td></tr>
+      <tr><td><b>Drillthrough</b></td><td>Only on a drillthrough page (the passed-in value)</td></tr>
+    </table></div>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Filter type</th><th>Example</th></tr>
+      <tr><td><b>Basic</b></td><td>Tick the categories to keep</td></tr>
+      <tr><td><b>Advanced</b></td><td>“contains” / “is greater than”, with And / Or</td></tr>
+      <tr><td><b>Top N</b></td><td>Top 5 products by Total Sales (<b>visual level</b> filter on a category)</td></tr>
+      <tr><td><b>Relative date / time</b></td><td>Last 30 days, this month, next 2 weeks</td></tr>
+    </table></div>
+    <p>As a report author you can <b>lock</b> or <b>hide</b> a filter so readers can’t change it.</p>
+
+    <h2>2. Slicers</h2>
+    <ul>
+      <li>Styles: list, dropdown, tile/buttons, <b>between</b> (numeric / date range), <b>relative date</b>, hierarchy.</li>
+      <li>Selection: multi-select by default; turn on <b>Single select</b> to allow one value; optional <b>Select all</b>, search box.</li>
+      <li><b>Sync slicers</b> (View → Sync slicers): choose which pages the slicer syncs to (<b>Sync</b> column) and on which pages it is shown (<b>Visible</b> column).</li>
+      <li>Add an <b>Apply</b> button to slicers to reduce queries on big models.</li>
+    </ul>
+
+    <h2>3. Visual interactions</h2>
+    <p>Selecting an element in one visual <b>cross-filters</b> or <b>cross-highlights</b> the others. Use <b>Format → Edit interactions</b>, select the source visual and pick for each target: <b>Filter</b>, <b>Highlight</b> or <b>None</b>.</p>
+    <ul>
+      <li>Ctrl-click selects several elements.</li>
+      <li>Setting a slicer’s interaction to <b>None</b> for one visual stops that visual from reacting to it.</li>
+      <li>Slicers and filters can be applied in <b>Reading view</b>; users can reset them to the saved state.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>A slicer is limited to its page unless it is <b>synced</b> to other pages. Page-level filters affect only that page; use <b>report-level</b> filters for every page. To exclude one chart from a slicer, use <b>Edit interactions → None</b>, not a visual filter.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Visual, page and report filter scopes; Basic, Advanced, Top N and Relative date types.</li>
+        <li>Sync slicers = Sync + Visible columns.</li>
+        <li>Edit interactions: Filter / Highlight / None.</li>
+      </ul>
+    </div>

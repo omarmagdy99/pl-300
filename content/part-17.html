@@ -1,0 +1,44 @@
+<div class="crumb">Section 3 · Part 5 of 6</div>
+    <h1>Layout, themes, accessibility &amp; mobile</h1>
+    <p class="lead">A report is only useful if people can read it, on any device and with any ability.</p>
+
+    <h2>1. Layout and canvas</h2>
+    <ul>
+      <li><b>Format → Align / Distribute</b> to line visuals up and space them evenly; <b>Group</b> visuals that belong together.</li>
+      <li><b>Selection pane</b>: name visuals, hide them, change layer (z-order).</li>
+      <li><b>Canvas settings</b> (Format pane → Page): size (16:9 default, 4:3, Letter, tooltip, custom), background, wallpaper. <b>View → Page view</b> (fit to page / width).</li>
+      <li>Gridlines and snap to grid help alignment. Leave white space; put the most important visual top-left.</li>
+    </ul>
+
+    <h2>2. Themes</h2>
+    <ul>
+      <li><b>View → Themes</b>: built-in themes, <b>Customize current theme</b>, or <b>Browse for themes</b> to import a <b>JSON</b> file with your brand colors and fonts.</li>
+      <li>A theme sets default data colors, text, backgrounds and visual styles for every visual.</li>
+      <li>A <b>template</b> (<code>.pbit</code>) saves layout and model for reuse.</li>
+    </ul>
+
+    <h2>3. Accessibility</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Practice</th><th>How</th></tr>
+      <tr><td><b>Alt text</b></td><td>Format → General → <b>Alt text</b> on each meaningful visual (read by screen readers)</td></tr>
+      <tr><td><b>Tab order / keyboard</b></td><td>Set the <b>tab order</b> in the Selection pane so keyboard users move in a logical sequence; hide purely decorative items</td></tr>
+      <tr><td><b>Titles and labels</b></td><td>Clear titles; data labels where needed</td></tr>
+      <tr><td><b>Color</b></td><td>Good contrast; color-blind-friendly palette; <b>never use color alone</b> (add labels, icons, patterns)</td></tr>
+      <tr><td><b>Show as table</b></td><td>Lets users see the data behind a visual</td></tr>
+      <tr><td>High contrast mode</td><td>Power BI follows Windows high contrast themes</td></tr>
+    </table></div>
+
+    <h2>4. Mobile layout</h2>
+    <p><b>View → Mobile layout</b> opens a phone canvas. Drag the visuals you want onto it and arrange them for a portrait screen; nothing is added automatically and the desktop layout stays unchanged. Phone users see this layout in the Power BI mobile app.</p>
+    <ul>
+      <li>Also consider <b>Personalize visuals</b> so readers can change a visual type or fields themselves, and bookmarks for default views.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>Brand colors for the whole report → import a <b>theme JSON</b> (don’t recolor visuals one by one). Phone optimization → <b>Mobile layout</b> (not a 4:3 page size). Screen-reader description → <b>alt text</b>.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Align/Distribute, Selection pane, canvas size for layout.</li>
+        <li>Themes: View → Themes → JSON. Template = .pbit.</li>
+        <li>Accessibility: alt text, tab order, contrast, not color alone. Mobile layout is built manually.</li>
+      </ul>
+    </div>

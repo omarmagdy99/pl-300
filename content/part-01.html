@@ -1,0 +1,43 @@
+<div class="crumb">Section 1 · Part 1 of 6</div>
+    <h1>Get or connect to data</h1>
+    <p class="lead">Choose the right connector, the right storage mode, and manage how Power BI authenticates to the source.</p>
+
+    <h2>1. Data sources</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Category</th><th>Examples</th></tr>
+      <tr><td>File</td><td>Excel workbook, Text/CSV, JSON, XML, PDF, <b>Folder</b></td></tr>
+      <tr><td>Database</td><td>SQL Server, Azure SQL Database, Oracle, MySQL, PostgreSQL, Azure Synapse</td></tr>
+      <tr><td>Power Platform / Fabric</td><td>Power BI semantic models, Dataflows, Dataverse, Lakehouse / Warehouse (OneLake)</td></tr>
+      <tr><td>Online services</td><td>SharePoint Online (folder / list), Dynamics 365, Salesforce</td></tr>
+      <tr><td>Other</td><td>Web, OData feed, Blank query, Enter data</td></tr>
+    </table></div>
+    <p>On-premises sources (a local SQL Server, a file share) need an <b>on-premises data gateway</b> for scheduled refresh in the Power BI service.</p>
+
+    <h2>2. Storage modes — the most tested topic of this part</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Mode</th><th>Where is the data?</th><th>Use it when</th><th>Limits</th></tr>
+      <tr><td><b>Import</b></td><td>Compressed copy in the model (VertiPaq, in memory)</td><td>Best performance; full DAX and Power Query support</td><td>Needs refresh; model size limits apply (for example 1 GB compressed on Pro)</td></tr>
+      <tr><td><b>DirectQuery</b></td><td>Stays in the source; queries are sent on every interaction</td><td>Very large data, or near real-time data</td><td>Slower visuals; only transformations that translate to a native query; 1 million row limit on a query result</td></tr>
+      <tr><td><b>Dual</b></td><td>Both — acts as Import or DirectQuery depending on the query</td><td>Dimension tables in a composite model (related to a DirectQuery fact table)</td><td>Needs a composite model</td></tr>
+      <tr><td><b>Live connection</b></td><td>A published Power BI semantic model (or Analysis Services)</td><td>Reuse one governed model across many reports</td><td>You can't change its tables; you can add report-level measures</td></tr>
+    </table></div>
+    <p>A model that mixes Import and DirectQuery tables is a <b>composite model</b>. In Microsoft Fabric, <b>Direct Lake</b> reads Delta tables from OneLake directly, with Import-like speed and no import copy.</p>
+
+    <h2>3. Data source settings</h2>
+    <ul>
+      <li>Open: <b>Home → Transform data → Data source settings</b>. Here you edit permissions (credentials) and <b>Change Source</b>.</li>
+      <li>Authentication kinds: Windows, Database, Basic, Organizational account (OAuth), Anonymous.</li>
+      <li><b>Privacy levels</b>: <i>Private</i>, <i>Organizational</i>, <i>Public</i>. They stop data from one source being sent to another source during a combine/folding operation. Conflicts cause the <code>Formula.Firewall</code> error.</li>
+    </ul>
+
+    <h2>4. Combine files from a folder</h2>
+    <p>Use the <b>Folder</b> connector → <b>Combine &amp; Transform Data</b>. Power Query creates a <i>Sample file</i>, a <i>parameter</i>, a <i>function</i> and a combined query — new files in the folder are picked up on the next refresh without editing the query.</p>
+
+    <div class="note trap"><b class="t">Exam trap</b>“Near real-time + huge table + no scheduled refresh” → <b>DirectQuery</b>. “Fastest visuals + data fits in memory” → <b>Import</b>. A dimension table that joins both worlds → <b>Dual</b>.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Know the 4 modes: Import, DirectQuery, Dual, Live connection.</li>
+        <li>Folder + Combine = automatic loading of new files.</li>
+        <li>Privacy-level conflicts → <code>Formula.Firewall</code>.</li>
+      </ul>
+    </div>

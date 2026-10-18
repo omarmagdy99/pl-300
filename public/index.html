@@ -201,7 +201,7 @@ details.rv .in{padding:4px 18px 16px;border-top:1px solid var(--border)}
 </head>
 <body>
 <header class="top"><div class="top-in">
-  <a class="brand" href="#/dashboard">PL-300 Prep<small>Prepare the data</small></a>
+  <a class="brand" href="#/dashboard">PL-300 Prep<small>Study guide &amp; practice exams</small></a>
   <nav id="links"></nav>
   <div id="userbox"></div>
 </div></header>
@@ -232,7 +232,15 @@ async function api(path,method='GET',body){
 }
 function go(h){if(location.hash===h)route();else location.hash=h}
 function view(html){app.innerHTML=html;window.scrollTo({top:0})}
-const partTitle=(p,n)=>p&&p.exams&&p.exams[n-1]?p.exams[n-1].title:'Part '+n;
+/* course helpers: exam ids are parts 1..18 and section finals 101..103 */
+const exInfo=(id,p=state.prog)=>p&&p.exams?p.exams.find(x=>x.exam===id):null;
+const secInfo=(s,p=state.prog)=>p&&p.sections?p.sections.find(x=>x.id===s):null;
+const lbl=x=>x?(x.kind==='final'?`Section ${x.section} final`:`Part ${x.section}.${x.local}`):'';
+const fullTitle=x=>x?(x.kind==='final'?`Section ${x.section} final exam – ${(secInfo(x.section)||{}).title||''}`:`Part ${x.section}.${x.local} – ${x.title}`):'';
+const partLbl=g=>lbl(exInfo(g))||('Part '+g);
+const examLbl=id=>lbl(exInfo(id))||('Exam '+id);
+const firstOf=s=>(state.prog.exams.find(x=>x.section===s&&x.kind==='part'&&x.local===1)||{}).exam;
+const isFin=id=>id>=100;
 
 function renderHeader(){
   const me=state.me, h=location.hash;
@@ -290,60 +298,81 @@ function chip(x){
   if(x.attempts>0)return '<span class="chip try">In progress</span>';
   return '<span class="chip go">Ready</span>';
 }
+function lockText(x,p){
+  if(x.kind==='final')return 'Pass all six part exams of this section to unlock the final exam.';
+  if(x.local===1)return `Pass the Section ${x.section-1} final exam (${p.passPct}%) to unlock this section.`;
+  return `Pass the Part ${x.section}.${x.local-1} exam (${p.passPct}%) to unlock this part.`;
+}
 async function viewDashboard(){
   view('<div class="spinner">Loading…</div>');
   const p=await api('/progress');state.prog=p;
-  const parts=p.exams.slice(0,6), fin=p.exams[6];
-  const passed=parts.filter(x=>x.passed).length;
+  const parts=p.exams.filter(x=>x.kind==='part'), finals=p.exams.filter(x=>x.kind==='final');
+  const passedParts=parts.filter(x=>x.passed).length, passedFinals=finals.filter(x=>x.passed).length;
+  const total=parts.length+finals.length, doneAll=passedParts+passedFinals;
   const card=x=>{
-    const n=x.exam, fi=n===7;
-    const lockTxt=fi?'Pass all six part exams to unlock.':`Pass the Part ${n-1} exam (${p.passPct}%) to unlock.`;
+    const fi=x.kind==='final';
     return `<div class="pcard ${x.unlocked?'':'locked'} ${x.passed?'passed':''}">
-      <div class="row sp"><span class="meta">${fi?'FINAL':'PART '+n}</span>${chip(x)}</div>
-      <h3>${esc(x.title)}</h3>
-      <div class="meta">${x.questions} questions${x.attempts?` · best ${x.best}% · ${x.attempts} attempt${x.attempts>1?'s':''}`:''}</div>
-      ${x.unlocked?'':`<div class="meta">${lockTxt}</div>`}
+      <div class="row sp"><span class="meta">${fi?'SECTION '+x.section+' FINAL':'PART '+x.section+'.'+x.local}</span>${chip(x)}</div>
+      <h3>${fi?'Final exam':esc(x.title)}</h3>
+      <div class="meta">${x.questions} questions${fi?' · all six parts':''}${x.attempts?` · best ${x.best}% · ${x.attempts} attempt${x.attempts>1?'s':''}`:''}</div>
+      ${x.unlocked?'':`<div class="meta">${lockText(x,p)}</div>`}
       ${x.overridden?'<div class="meta">Unlocked by an admin.</div>':''}
-      <div class="acts">${fi?'':`<a class="btn sec sm ${x.unlocked?'':'off'}" href="#/part/${n}">Study</a>`}
-        <a class="btn sm ${x.unlocked?'':'off'}" href="#/exam/${n}">${x.passed?'Retake exam':'Take exam'}</a></div></div>`;
+      <div class="acts">${fi?'':`<a class="btn sec sm ${x.unlocked?'':'off'}" href="#/part/${x.exam}">Study</a>`}
+        <a class="btn sm ${x.unlocked?'':'off'}" href="#/exam/${x.exam}">${x.passed?'Retake exam':'Take exam'}</a></div></div>`;
   };
+  const secHtml=p.sections.map(s=>{
+    const ps=p.exams.filter(x=>x.section===s.id&&x.kind==='part'), fin=p.exams.find(x=>x.exam===s.final);
+    const done=ps.filter(x=>x.passed).length+(fin.passed?1:0);
+    return `<div class="row sp" style="margin-top:28px"><h2 class="sec" style="margin:0">Section ${s.id} · ${esc(s.title)}</h2><span class="hint">${s.weight} of the exam · ${done} of ${ps.length+1} done</span></div>
+      <div class="bar ${done===ps.length+1?'g':''}"><i style="width:${done/(ps.length+1)*100}%"></i></div>
+      <div class="cards">${ps.map(card).join('')}${card(fin)}</div>`;
+  }).join('');
   view(`<h1 class="pg">Hi ${esc(state.me.name.split(' ')[0])} 👋</h1>
-    <p class="sub">Study each part, then pass its exam (${p.passPct}% or more) to unlock the next one.</p>
-    <div class="card"><div class="row sp"><b>Overall progress</b><span>${passed} of 6 parts passed${fin.passed?' · Final exam passed 🎉':''}</span></div>
-      <div class="bar ${passed===6?'g':''}"><i style="width:${passed/6*100}%"></i></div></div>
-    <h2 class="sec">Parts</h2><div class="cards">${parts.map(card).join('')}</div>
-    <h2 class="sec">Final exam</h2><div class="cards">${card(fin)}</div>
+    <p class="sub">Study each part, then pass its exam (${p.passPct}% or more) to unlock the next one. Finish a section with its final exam to open the next section.</p>
+    <div class="card"><div class="row sp"><b>Overall progress</b><span>${passedParts} of ${parts.length} parts · ${passedFinals} of ${finals.length} sections completed${passedFinals===finals.length?' 🎉':''}</span></div>
+      <div class="bar ${doneAll===total?'g':''}"><i style="width:${doneAll/total*100}%"></i></div></div>
+    ${secHtml}
     <h2 class="sec">Recent attempts</h2>
     ${p.history.length?`<div class="tw"><table class="tbl hov"><thead><tr><th>Date</th><th>Exam</th><th>Score</th><th>Result</th></tr></thead><tbody>
-      ${p.history.map(h=>`<tr data-href="#/result/${h.id}"><td>${fmtDate(h.submitted_at)}</td><td>${h.exam===7?'Final exam':'Part '+h.exam+' – '+esc(partTitle(p,h.exam))}</td><td>${h.correct}/${h.total} (${h.pct}%)</td><td><span class="pill ${h.passed?'ok':'bad'}">${h.passed?'Passed':'Not passed'}</span></td></tr>`).join('')}
-      </tbody></table></div>`:'<p class="sub">No attempts yet. Start with Part 1.</p>'}`);
+      ${p.history.map(h=>`<tr data-href="#/result/${h.id}"><td>${fmtDate(h.submitted_at)}</td><td>${esc(fullTitle(exInfo(h.exam,p)))}</td><td>${h.correct}/${h.total} (${h.pct}%)</td><td><span class="pill ${h.passed?'ok':'bad'}">${h.passed?'Passed':'Not passed'}</span></td></tr>`).join('')}
+      </tbody></table></div>`:'<p class="sub">No attempts yet. Start with Part 1.1.</p>'}`);
 }
 
 /* ================= study ================= */
 async function viewPart(n){
-  if(n<1||n>6)return go('#/dashboard');
   view('<div class="spinner">Loading…</div>');
   const p=await api('/progress');state.prog=p;
-  const cur=p.exams[n-1];
+  const cur=exInfo(n,p);
+  if(!cur||cur.kind!=='part')return go('#/dashboard');
+  const sec=secInfo(cur.section,p);
+  const secParts=p.exams.filter(x=>x.section===cur.section&&x.kind==='part');
+  const fin=p.exams.find(x=>x.exam===sec.final);
   let body;
   if(!cur.unlocked){
-    body=`<div class="screen"><h1>🔒 Part ${n} is locked</h1><p class="lead">Pass the Part ${n-1} exam with at least ${p.passPct}% to unlock this part.</p>
-      <a class="btn" href="#/part/${n-1}">Go to Part ${n-1}</a></div>`;
+    body=`<div class="screen"><h1>🔒 ${lbl(cur)} is locked</h1><p class="lead">${lockText(cur,p)}</p><a class="btn" href="#/dashboard">Back to my progress</a></div>`;
   }else{
     const c=await api('/content/'+n);
-    const next=p.exams[n]; // part n+1 (index n) – only for n<6
-    const nextLocked=n<6&&!next.unlocked;
+    const idx=secParts.findIndex(x=>x.exam===n);
+    const prev=idx>0?secParts[idx-1]:null, next=idx<secParts.length-1?secParts[idx+1]:null;
+    const nextLocked=next?!next.unlocked:!fin.unlocked;
     body=`<section class="screen">${c.html}
       <div class="pager">
-        <a class="btn sec ${n===1?'off':''}" href="#/part/${n-1}">← Previous</a>
-        <div><a class="btn" href="#/exam/${n}">${cur.passed?'Retake':'Take'} the Part ${n} exam</a></div>
-        ${n<6?`<span><a class="btn sec ${nextLocked?'off':''}" href="#/part/${n+1}">Next →</a>${nextLocked?`<div class="lockmsg">Pass the Part ${n} exam to unlock.</div>`:''}</span>`
-              :`<a class="btn sec" href="#/dashboard">Dashboard</a>`}
+        ${prev?`<a class="btn sec" href="#/part/${prev.exam}">← Previous</a>`:'<span class="btn sec off">← Previous</span>'}
+        <div><a class="btn" href="#/exam/${n}">${cur.passed?'Retake':'Take'} the ${lbl(cur)} exam</a></div>
+        <span>${next?`<a class="btn sec ${next.unlocked?'':'off'}" href="#/part/${next.exam}">Next →</a>`:`<a class="btn sec ${fin.unlocked?'':'off'}" href="#/exam/${fin.exam}">Section final exam →</a>`}
+          ${nextLocked?`<div class="lockmsg">Pass the ${lbl(cur)} exam to unlock.</div>`:''}</span>
       </div></section>`;
   }
-  view(`<div class="study"><aside class="side"><h3>Prepare the data</h3>
-    ${p.exams.slice(0,6).map(x=>`<a href="#/part/${x.exam}" class="${x.exam===n?'on':''} ${x.passed?'ok':''} ${x.unlocked?'':'lk'}"><span class="n">${x.passed?'✓':x.unlocked?x.exam:'🔒'}</span><span>${esc(x.title)}</span></a>`).join('')}
-    </aside><div>${body}</div></div>`);
+  const side=p.sections.map(s=>{
+    const ps=p.exams.filter(x=>x.section===s.id&&x.kind==='part'), f=p.exams.find(x=>x.exam===s.final);
+    if(s.id!==cur.section){
+      const first=ps[0], done=ps.filter(x=>x.passed).length;
+      return `<a href="#/part/${first.exam}" class="${first.unlocked?'':'lk'}"><span class="n">${first.unlocked?s.id:'🔒'}</span><span><b>${esc(s.title)}</b><div class="hint">${done}/${ps.length} parts passed</div></span></a>`;
+    }
+    return `<h3>Section ${s.id} · ${esc(s.title)}</h3>`+ps.map(x=>`<a href="#/part/${x.exam}" class="${x.exam===n?'on':''} ${x.passed?'ok':''} ${x.unlocked?'':'lk'}"><span class="n">${x.passed?'✓':x.unlocked?x.local:'🔒'}</span><span>${esc(x.title)}</span></a>`).join('')+
+      `<a href="#/exam/${f.exam}" class="${f.passed?'ok':''} ${f.unlocked?'':'lk'}"><span class="n">${f.passed?'✓':f.unlocked?'🏁':'🔒'}</span><span>Section final exam</span></a>`;
+  }).join('');
+  view(`<div class="study"><aside class="side">${side}</aside><div>${body}</div></div>`);
 }
 
 /* ================= exam runner ================= */
@@ -353,18 +382,22 @@ const dKey=id=>'pl300.draft.'+id;
 function saveDraft(){if(!E)return;try{localStorage.setItem(dKey(E.attemptId),JSON.stringify({ans:E.ans,flag:[...E.flag],touched:[...E.touched],idx:E.idx}))}catch{}}
 function loadDraft(id){try{return JSON.parse(localStorage.getItem(dKey(id)))}catch{return null}}
 function clearDraft(id){try{localStorage.removeItem(dKey(id))}catch{}}
+const examHead=id=>{const x=exInfo(id);return x?(x.kind==='final'?`Section ${x.section} final exam`:`${lbl(x)} exam`):'Exam'};
 
 async function viewExamLobby(n){
-  if(!(n>=1&&n<=7))return go('#/dashboard');
   view('<div class="spinner">Loading…</div>');
-  const p=await api('/progress');state.prog=p;const x=p.exams[n-1],fin=n===7;
+  const p=await api('/progress');state.prog=p;const x=exInfo(n,p);
+  if(!x)return go('#/dashboard');
+  const fin=x.kind==='final',sec=secInfo(x.section,p);
   if(!x.unlocked){
-    return view(`<div class="card center" style="max-width:560px"><h1>🔒 Locked</h1><p class="sub">${fin?'Pass all six part exams to unlock the final exam.':`Pass the Part ${n-1} exam (${p.passPct}%) to unlock Part ${n}.`}</p><a class="btn" href="#/dashboard">Back to my progress</a></div>`);
+    return view(`<div class="card center" style="max-width:560px"><h1>🔒 Locked</h1><p class="sub">${lockText(x,p)}</p><a class="btn" href="#/dashboard">Back to my progress</a></div>`);
   }
-  view(`<div class="exam-shell"><div class="xcard"><div class="xhead"><span class="ttl">${fin?'Final practice exam':`Part ${n} exam`}</span><span class="sp">${esc(fin?'All parts':x.title)}</span></div>
+  const i=p.exams.findIndex(e=>e.exam===n),nx=p.exams[i+1];
+  const unlocks=!nx?'nothing more: you will have completed the whole programme':nx.kind==='final'?`the Section ${nx.section} final exam`:nx.local===1?`Section ${nx.section} (${secInfo(nx.section,p).title})`:`${lbl(nx)}`;
+  view(`<div class="exam-shell"><div class="xcard"><div class="xhead"><span class="ttl">${examHead(n)}</span><span class="sp">${esc(sec.title)}</span></div>
     <div class="xbody"><h1 style="margin:0 0 8px;font-weight:600">Instructions</h1>
     <p>This exam has <b>${x.questions} questions</b> in the style of the PL-300 exam (single choice, multiple choice, Yes/No, drop-down and ordering).</p>
-    <ul><li>Pass mark: <b>${p.passPct}%</b>${fin?'':` — passing unlocks ${n<6?`Part ${n+1}`:'the final exam'}.`}</li>
+    <ul><li>Pass mark: <b>${p.passPct}%</b> — passing unlocks ${unlocks}.</li>
       <li>A question counts only if <b>all</b> of its parts are correct.</li>
       <li>You can mark questions for review and use the question list at any time.</li>
       <li>${fin?'You have <b>45 minutes</b>. The timer keeps running if you leave the page.':'No time limit. Correct answers and explanations appear after you submit.'}</li>
@@ -431,8 +464,8 @@ function xQuestion(){
       <ol class="ord">${a.map((k,pos)=>`<li><span class="num">${pos+1}</span><span class="tx">${text[k]}</span>
       <button data-mv="${pos}" data-dir="-1" ${pos===0?'disabled':''} aria-label="Move up">▲</button><button data-mv="${pos}" data-dir="1" ${pos===a.length-1?'disabled':''} aria-label="Move down">▼</button></li>`).join('')}</ol>`;
   }
-  app.innerHTML=`<div class="exam-shell"><div class="xcard">${xHead(E.exam===7?'Final practice exam':`Part ${E.exam} exam`)}
-    <div class="xbody"><div class="qno"><span class="tag">Part ${q.part}</span>
+  app.innerHTML=`<div class="exam-shell"><div class="xcard">${xHead(examHead(E.exam))}
+    <div class="xbody"><div class="qno"><span class="tag">${partLbl(q.part)}</span>
       <label class="flag"><input type="checkbox" id="flag" ${E.flag.has(q.id)?'checked':''}> Mark for review</label></div>${body}</div>
     <div class="xfoot"><button class="btn sec" id="prev" ${E.idx===0?'disabled':''}>◀ Previous</button>
       <button class="btn sec" id="next">${E.idx===n-1?'Review ▶':'Next ▶'}</button>
@@ -508,26 +541,29 @@ function fmtAns(q,a){
 const correctOf=q=>q.type==='single'||q.type==='multi'||q.type==='yesno'?q.ans:q.type==='dropdown'?q.dd.map(d=>d.ans):q.items.map((_,i)=>i);
 
 function renderResult(r,justSubmitted){
-  const fin=r.exam===7, expired=r.status==='expired';
+  const fin=isFin(r.exam), expired=r.status==='expired', me=exInfo(r.exam);
   const parts=[...new Set(r.questions.map(q=>q.part))];
-  const bars=fin?parts.map(p=>{const qs=r.questions.filter(q=>q.part===p),c=qs.filter(q=>q.ok).length,pp=Math.round(c/qs.length*100);
-    return `<div class="pb"><span>Part ${p}: ${esc(partTitle(state.prog,p))}</span><div class="tr"><i style="width:${pp}%;background:${pp>=r.passPct?'var(--green)':'var(--red)'}"></i></div><b>${c}/${qs.length}</b></div>`}).join(''):'';
+  const bars=fin?parts.map(p=>{const qs=r.questions.filter(q=>q.part===p),c=qs.filter(q=>q.ok).length,pp=Math.round(c/qs.length*100),x=exInfo(p);
+    return `<div class="pb"><span>${partLbl(p)}: ${esc(x?x.title:'')}</span><div class="tr"><i style="width:${pp}%;background:${pp>=r.passPct?'var(--green)':'var(--red)'}"></i></div><b>${c}/${qs.length}</b></div>`}).join(''):'';
+  const ex=state.prog.exams, nx=ex[ex.findIndex(e=>e.exam===r.exam)+1];
+  const nxText=!nx?'':nx.kind==='final'?`Take the Section ${nx.section} final exam →`:nx.local===1?`Start Section ${nx.section}: ${(secInfo(nx.section)||{}).title} →`:`Continue to ${lbl(nx)} →`;
+  const nxHref=!nx?'':nx.kind==='final'?`#/exam/${nx.exam}`:`#/part/${nx.exam}`;
   let cta='';
-  if(r.passed&&!fin)cta=r.exam<6?`<a class="btn" href="#/part/${r.exam+1}">Continue to Part ${r.exam+1} →</a>`:'<a class="btn" href="#/exam/7">Take the final exam →</a>';
-  else if(r.passed&&fin)cta='<span>🎉 You completed the whole programme.</span>';
-  else if(!expired)cta=`${fin?'':`<a class="btn" href="#/part/${r.exam}">Review Part ${r.exam}</a>`}<a class="btn sec" href="#/exam/${r.exam}">Retake exam</a>`;
+  if(r.passed)cta=nx?`<a class="btn" href="${nxHref}">${esc(nxText)}</a>`:'<span>🎉 You completed the whole programme.</span>';
+  else if(!expired)cta=`${fin?'':`<a class="btn" href="#/part/${r.exam}">Review ${lbl(me)}</a>`}<a class="btn sec" href="#/exam/${r.exam}">Retake exam</a>`;
   else cta=`<a class="btn sec" href="#/exam/${r.exam}">Start a new attempt</a>`;
-  view(`<div class="exam-shell"><div class="xcard"><div class="xhead"><span class="ttl">${fin?'Final practice exam':`Part ${r.exam} exam`} · Results</span><span class="sp">${fmtDate(r.submittedAt)}</span></div>
+  const unlockMsg=r.nextExam?(()=>{const u=exInfo(r.nextExam);return u.kind==='final'?`The Section ${u.section} final exam is now unlocked.`:u.local===1?`Section ${u.section} (${(secInfo(u.section)||{}).title}) is now unlocked.`:`${lbl(u)} is now unlocked.`})():'';
+  view(`<div class="exam-shell"><div class="xcard"><div class="xhead"><span class="ttl">${examHead(r.exam)} · Results</span><span class="sp">${fmtDate(r.submittedAt)}</span></div>
     <div class="xbody">
       ${expired?'<div class="err">Time expired before you submitted, so this attempt scored 0.</div>':''}
       <div class="score"><div class="big">${r.pct}%</div><div><span class="pill ${r.passed?'ok':'bad'}" style="font-size:14px;padding:4px 14px">${r.passed?'PASS':'NOT YET'}</span>
         <p style="margin:8px 0 0">${r.correct} of ${r.total} questions correct · pass mark ${r.passPct}%</p></div></div>
-      ${r.passed&&!fin&&justSubmitted?`<div class="fb ok"><b>${r.exam<6?`Part ${r.exam+1} is now unlocked.`:'The final exam is now unlocked.'}</b></div>`:''}
+      ${unlockMsg&&justSubmitted?`<div class="fb ok"><b>${unlockMsg}</b></div>`:''}
       ${!r.passed&&!expired?`<div class="fb bad"><b>You need ${r.passPct}% to continue.</b> Review the questions below, re-read the study material, and try again.</div>`:''}
       ${bars?`<h3>Performance by part</h3>${bars}`:''}
       <div class="row" style="margin:18px 0">${cta}<a class="btn sec" href="#/dashboard">My progress</a></div>
       <h3 style="margin-top:22px">Question review</h3>
-      ${r.questions.map((q,i)=>`<details class="rv" ${q.ok?'':'open'}><summary><span class="st ${q.ok?'ok':'bad'}">${q.ok?'Correct':q.userAnswer==null?'Unanswered':'Incorrect'}</span><span>Question ${i+1} · Part ${q.part}</span></summary>
+      ${r.questions.map((q,i)=>`<details class="rv" ${q.ok?'':'open'}><summary><span class="st ${q.ok?'ok':'bad'}">${q.ok?'Correct':q.userAnswer==null?'Unanswered':'Incorrect'}</span><span>Question ${i+1} · ${partLbl(q.part)}</span></summary>
         <div class="in"><div class="qtext" style="margin-top:12px">${q.text}</div>${q.ins?`<p><b>${q.ins}</b></p>`:''}
         <p style="margin-bottom:2px"><b>Your answer:</b></p>${fmtAns(q,q.userAnswer)}
         ${q.ok?'':`<p style="margin:12px 0 2px"><b>Correct answer:</b></p>${fmtAns(q,correctOf(q))}`}
@@ -556,7 +592,7 @@ async function viewAdmin(tab){
       <div class="tile"><b>${t.attempts}</b><span>Exam attempts</span></div>
       <div class="tile"><b>${rate}%</b><span>Attempts passed</span></div></div>
       <h2 class="sec">Funnel by exam</h2><div class="tw"><table class="tbl"><thead><tr><th>Exam</th><th>Users tried</th><th>Users passed</th><th>Attempts</th><th>Average score</th></tr></thead><tbody>
-      ${d.funnel.map(f=>`<tr><td>${f.exam===7?'Final exam':`Part ${f.exam} – ${esc(f.title)}`}</td><td>${f.usersTried}</td>
+      ${d.funnel.map(f=>`<tr><td>${esc(fullTitle(f))}</td><td>${f.usersTried}</td>
         <td>${f.usersPassed}${f.usersTried?` <span class="hint">(${Math.round(f.usersPassed/f.usersTried*100)}%)</span>`:''}</td><td>${f.attempts}</td>
         <td>${f.avgPct==null?'—':`<span class="mini"><i style="width:${f.avgPct}%;background:${f.avgPct>=d.passPct?'var(--green)':'var(--red)'}"></i></span>${f.avgPct}%`}</td></tr>`).join('')}</tbody></table></div>
       <h2 class="sec">Hardest questions</h2>
@@ -564,14 +600,15 @@ async function viewAdmin(tab){
       ${d.hardest.map(h=>`<tr><td>${h.part}</td><td>${esc(h.text)}${h.text.length>=160?'…':''}</td><td>${h.n}</td><td><b style="color:${h.correctPct<50?'var(--red)':'inherit'}">${h.correctPct}%</b></td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">No answers recorded yet.</p>'}
       <h2 class="sec">Recent activity</h2>
       ${d.recent.length?`<div class="tw"><table class="tbl hov"><thead><tr><th>When</th><th>User</th><th>Exam</th><th>Score</th><th>Result</th></tr></thead><tbody>
-      ${d.recent.map(r=>`<tr data-href="#/result/${r.id}"><td>${ago(r.submitted_at)}</td><td>${esc(r.name)}<div class="hint">${esc(r.email)}</div></td><td>${r.exam===7?'Final':'Part '+r.exam}</td><td>${r.pct}%</td><td><span class="pill ${r.passed?'ok':'bad'}">${r.passed?'Passed':'Not passed'}</span></td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">Nothing yet.</p>'}`);
+      ${d.recent.map(r=>`<tr data-href="#/result/${r.id}"><td>${ago(r.submitted_at)}</td><td>${esc(r.name)}<div class="hint">${esc(r.email)}</div></td><td>${esc(examLbl(r.exam))}</td><td>${r.pct}%</td><td><span class="pill ${r.passed?'ok':'bad'}">${r.passed?'Passed':'Not passed'}</span></td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">Nothing yet.</p>'}`);
   }else{
     const {users}=await api('/admin/users');
+    const TP=state.prog.exams.filter(x=>x.kind==='part').length;
     const draw=q=>{
       const f=users.filter(u=>!q||(u.name+' '+u.email).toLowerCase().includes(q.toLowerCase()));
       $('#ulist').innerHTML=f.length?`<table class="tbl hov"><thead><tr><th>Name</th><th>Role</th><th>Parts passed</th><th>Attempts</th><th>Last activity</th><th>Joined</th></tr></thead><tbody>
         ${f.map(u=>`<tr data-href="#/admin/user/${u.id}"><td><b>${esc(u.name)}</b><div class="hint">${esc(u.email)}</div></td><td>${u.role==='admin'?'<span class="badge">ADMIN</span>':'User'}</td>
-        <td><span class="mini"><i style="width:${u.parts_passed/6*100}%"></i></span>${u.parts_passed}/6${u.final_passed?' 🏁':''}</td><td>${u.attempts}</td><td>${ago(u.last_attempt||u.last_seen)}</td><td>${fmtDate(u.created_at).split(',')[0]}</td></tr>`).join('')}</tbody></table>`:'<p class="sub">No users match.</p>';
+        <td><span class="mini"><i style="width:${u.parts_passed/TP*100}%"></i></span>${u.parts_passed}/${TP}${u.finals_passed?` · 🏁 ${u.finals_passed}`:''}</td><td>${u.attempts}</td><td>${ago(u.last_attempt||u.last_seen)}</td><td>${fmtDate(u.created_at).split(',')[0]}</td></tr>`).join('')}</tbody></table>`:'<p class="sub">No users match.</p>';
     };
     view(adminTabs('users')+`<div class="tools"><input class="t" id="usearch" placeholder="Search by name or email…" style="max-width:340px"><span class="hint" style="align-self:center">${users.length} user${users.length===1?'':'s'}</span></div><div class="tw" id="ulist"></div>`);
     draw('');$('#usearch').oninput=e=>draw(e.target.value.trim());
@@ -591,13 +628,13 @@ async function viewAdminUser(id){
         <button class="btn sec sm" id="a-reset">Reset progress</button>
         <button class="btn danger sm" id="a-del">Delete user</button>`}</div></div></div>
     <h2 class="sec">Progress</h2><div class="tw"><table class="tbl"><thead><tr><th>Exam</th><th>Status</th><th>Best</th><th>Attempts</th><th>Last attempt</th><th>Access</th></tr></thead><tbody>
-    ${d.exams.map(x=>`<tr><td>${x.exam===7?'Final exam':`Part ${x.exam} – ${esc(x.title)}`}</td>
+    ${d.exams.map(x=>`<tr><td>${esc(fullTitle(x))}</td>
       <td>${x.passed?'<span class="pill ok">Passed</span>':x.unlocked?'<span class="pill na">Open</span>':'<span class="pill bad">Locked</span>'}</td>
       <td>${x.best==null?'—':x.best+'%'}</td><td>${x.attempts}</td><td>${ago(x.last)}</td>
       <td>${x.exam===1?'<span class="hint">Always open</span>':x.overridden?`<button class="btn sec sm" data-un="${x.exam}" data-v="0">Remove unlock</button>`:x.unlocked?'<span class="hint">Earned</span>':`<button class="btn sm" data-un="${x.exam}" data-v="1">Unlock</button>`}</td></tr>`).join('')}</tbody></table></div>
     <h2 class="sec">Attempts</h2>
     ${d.attempts.length?`<div class="tw"><table class="tbl hov"><thead><tr><th>Date</th><th>Exam</th><th>Score</th><th>Result</th></tr></thead><tbody>
-      ${d.attempts.map(a=>`<tr data-href="#/result/${a.id}"><td>${fmtDate(a.submitted_at||a.started_at)}</td><td>${a.exam===7?'Final exam':'Part '+a.exam}</td><td>${a.status==='expired'?'Expired':`${a.correct}/${a.total} (${a.pct}%)`}</td><td><span class="pill ${a.passed?'ok':'bad'}">${a.passed?'Passed':'Not passed'}</span></td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">No attempts yet.</p>'}`);
+      ${d.attempts.map(a=>`<tr data-href="#/result/${a.id}"><td>${fmtDate(a.submitted_at||a.started_at)}</td><td>${esc(examLbl(a.exam))}</td><td>${a.status==='expired'?'Expired':`${a.correct}/${a.total} (${a.pct}%)`}</td><td><span class="pill ${a.passed?'ok':'bad'}">${a.passed?'Passed':'Not passed'}</span></td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">No attempts yet.</p>'}`);
   $$('[data-un]').forEach(b=>b.onclick=()=>act('unlock',{exam:+b.dataset.un,unlock:b.dataset.v==='1'},b.dataset.v==='1'?'Unlocked.':'Override removed.'));
   if(!self){
     $('#a-role').onclick=()=>{if(confirm(u.role==='admin'?`Remove admin rights from ${u.name}?`:`Make ${u.name} an admin? They will see all user data.`))act('role',{role:u.role==='admin'?'user':'admin'},'Role updated.')};

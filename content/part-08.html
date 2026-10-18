@@ -1,0 +1,49 @@
+<div class="crumb">Section 2 · Part 2 of 6</div>
+    <h1>Relationships &amp; cross-filtering</h1>
+    <p class="lead">Relationships decide how filters travel between tables. Get cardinality and direction right.</p>
+
+    <h2>1. Cardinality</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Type</th><th>Meaning</th><th>Use</th></tr>
+      <tr><td><b>One-to-many (1:*)</b></td><td>One row in the dimension matches many rows in the fact</td><td><b>The default and recommended</b> type (Customer → Sales)</td></tr>
+      <tr><td><b>One-to-one (1:1)</b></td><td>Each row matches at most one row on the other side</td><td>Rare; usually better to merge the two tables</td></tr>
+      <tr><td><b>Many-to-many (*:*)</b></td><td>Duplicates on both sides</td><td>Avoid when possible; prefer a <b>bridge table</b> of unique keys</td></tr>
+    </table></div>
+    <p>The “one” side needs a column with <b>unique, non-blank</b> values (check it with Column distribution). Both key columns must have the <b>same data type</b>.</p>
+
+    <h2>2. Cross-filter direction</h2>
+    <ul>
+      <li><b>Single</b> (default): the dimension filters the fact table. This is what you want almost always.</li>
+      <li><b>Both</b> (bi-directional): filters flow both ways. Use sparingly: it can create ambiguous paths, wrong totals and slow queries. A common valid use is a many-to-many via a bridge, or a slicer that must filter other dimensions.</li>
+      <li>You cannot create circular relationship paths.</li>
+    </ul>
+
+    <h2>3. Active vs inactive and role-playing dimensions</h2>
+    <p>Only <b>one active</b> relationship can exist between two tables (shown as a solid line). Others are <b>inactive</b> (dotted line). A <b>role-playing dimension</b> is one dimension used for several roles, for example a Date table related to <code>OrderDate</code>, <code>ShipDate</code> and <code>DueDate</code>.</p>
+<pre class="code"><span class="c">// OrderDate relationship is active; ShipDate relationship is inactive</span>
+Sales by Ship Date =
+<span class="k">CALCULATE</span> (
+    [Total Sales],
+    <span class="k">USERELATIONSHIP</span> ( Sales[ShipDate], <span class="s">'Date'</span>[Date] )
+)</pre>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Approach</th><th>Pros</th><th>Cons</th></tr>
+      <tr><td>One Date table + inactive relationships + <code>USERELATIONSHIP</code></td><td>One date table to maintain, smaller model</td><td>One role per measure; needs extra measures</td></tr>
+      <tr><td>Duplicate the Date table (Order Date, Ship Date)</td><td>Slice by both roles at the same time; no extra DAX</td><td>More tables to maintain</td></tr>
+    </table></div>
+
+    <h2>4. Other things to know</h2>
+    <ul>
+      <li>Manage them in <b>Model view</b> or <b>Modeling → Manage relationships</b>. Auto-detect can create wrong ones: review them.</li>
+      <li>If fact rows have a key that is missing in the dimension, visuals show a <b>(Blank)</b> member for them (a referential integrity problem).</li>
+      <li>Filters flow from the “one” side to the “many” side; the arrow on the line shows the direction.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>“Keep current visuals by order date and add a measure by ship date” → <b>inactive relationship + USERELATIONSHIP</b>, not a second active relationship (Power BI will not allow it) and not bi-directional filtering.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Default: one-to-many, single direction from dimension to fact.</li>
+        <li>One active relationship per pair of tables; activate others with <code>USERELATIONSHIP</code>.</li>
+        <li>Both direction and many-to-many are exceptions, not the rule.</li>
+      </ul>
+    </div>

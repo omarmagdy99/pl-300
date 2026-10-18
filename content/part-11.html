@@ -1,0 +1,54 @@
+<div class="crumb">Section 2 · Part 5 of 6</div>
+    <h1>CALCULATE, filters &amp; statistics</h1>
+    <p class="lead">CALCULATE is the most important function in DAX: it changes the filter context.</p>
+
+    <h2>1. CALCULATE</h2>
+    <p><code>CALCULATE ( &lt;expression&gt;, &lt;filter1&gt;, &lt;filter2&gt;, … )</code> evaluates the expression after applying the filters. A filter on a column <b>replaces</b> any existing filter on that same column.</p>
+<pre class="code">Red Sales = <span class="k">CALCULATE</span> ( [Total Sales], Product[Color] = <span class="s">"Red"</span> )
+
+All Sales = <span class="k">CALCULATE</span> ( [Total Sales], <span class="k">ALL</span> ( Product ) )
+
+% of Total = <span class="k">DIVIDE</span> ( [Total Sales], <span class="k">CALCULATE</span> ( [Total Sales], <span class="k">ALL</span> ( Product ) ) )
+
+% of Category =
+<span class="k">DIVIDE</span> ( [Total Sales], <span class="k">CALCULATE</span> ( [Total Sales], <span class="k">ALLEXCEPT</span> ( Product, Product[Category] ) ) )
+
+Big Orders = <span class="k">CALCULATE</span> ( [Total Sales], <span class="k">FILTER</span> ( Sales, Sales[Amount] &gt; 1000 ) )</pre>
+
+    <h2>2. Filter functions</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Function</th><th>What it does</th></tr>
+      <tr><td><code>ALL</code></td><td>Removes all filters from a table / columns (returns all rows)</td></tr>
+      <tr><td><code>ALLEXCEPT</code></td><td>Removes all filters from a table <i>except</i> the listed columns</td></tr>
+      <tr><td><code>ALLSELECTED</code></td><td>Removes the filters of the current visual but keeps the outer ones (slicers, filters). Use for “% of the <b>visible</b> total”</td></tr>
+      <tr><td><code>REMOVEFILTERS</code></td><td>Clears filters; works only as a CALCULATE modifier (clearer name than ALL)</td></tr>
+      <tr><td><code>VALUES / DISTINCT</code></td><td>The distinct values currently visible in a column</td></tr>
+      <tr><td><code>SELECTEDVALUE</code></td><td>The value if exactly <b>one</b> is selected, otherwise blank (or an alternate result)</td></tr>
+      <tr><td><code>HASONEVALUE / ISFILTERED</code></td><td>Tests about the current filter context</td></tr>
+      <tr><td><code>FILTER</code></td><td>Returns a table of the rows that meet a condition; it <b>iterates</b> (can be slow on big tables)</td></tr>
+    </table></div>
+    <p><b>Context transition:</b> <code>CALCULATE</code> turns the current <i>row context</i> into an equivalent <i>filter context</i>. That is why referencing a measure inside a calculated column or an iterator works: Power BI wraps it in an implicit <code>CALCULATE</code>.</p>
+
+    <h2>3. Semi-additive measures</h2>
+    <p>Balances and inventory levels must not be summed across time. Take the value at the last date instead:</p>
+<pre class="code">Closing Balance =
+<span class="k">CALCULATE</span> ( <span class="k">SUM</span> ( Balances[Amount] ), <span class="k">LASTDATE</span> ( <span class="s">'Date'</span>[Date] ) )
+
+<span class="c">// or: CLOSINGBALANCEMONTH / CLOSINGBALANCEQUARTER / CLOSINGBALANCEYEAR</span></pre>
+
+    <h2>4. Basic statistical functions</h2>
+    <ul>
+      <li><code>AVERAGE</code>, <code>MEDIAN</code>, <code>MIN</code>, <code>MAX</code>, <code>STDEV.P / STDEV.S</code>, <code>PERCENTILE.INC</code>; iterator versions <code>AVERAGEX</code>, <code>MEDIANX</code>…</li>
+      <li><code>RANKX ( ALL ( Product[Name] ), [Total Sales] )</code> ranks each product.</li>
+      <li><code>TOPN ( 10, Customer, [Total Sales] )</code> returns the top 10 rows of a table.</li>
+      <li><code>VAR … RETURN</code> stores intermediate results: easier to read and calculated once.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b><code>ALL ( Product )</code> clears <i>everything</i> on Product, including a Category slicer. To keep the slicer selection use <code>ALLSELECTED ( Product )</code>. Prefer a Boolean filter (<code>Product[Color] = "Red"</code>) to <code>FILTER ( Product, … )</code>: it is faster.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>CALCULATE = expression + new filters (replace filters on the same column).</li>
+        <li>ALL clears, ALLEXCEPT keeps some, ALLSELECTED keeps the outer slicers.</li>
+        <li>Balances: <code>LASTDATE</code> / <code>CLOSINGBALANCE…</code>, never a plain sum over time.</li>
+      </ul>
+    </div>

@@ -1,13 +1,13 @@
-import { QUESTIONS, PART_TITLES } from './questions.js';
+import { QUESTIONS } from './questions.js';
 import { CONTENT } from './content.js';
+import { SECTIONS, PARTS, EXAMS, finalId, sectionOfPart } from './course.js';
 import { verifyGoogleIdToken, TokenError } from './google.js';
 
 /* ------------------------------------------------------------------ */
 /* constants                                                           */
 /* ------------------------------------------------------------------ */
 const PASS_PCT = 70;
-const FINAL_EXAM = 7;
-const FINAL_SECONDS = 45 * 60;
+const FINAL_SECONDS = 45 * 60; // time limit of a section final exam
 const FINAL_GRACE = 60;
 const SESSION_SECONDS = 30 * 24 * 3600;
 const PBKDF2_ITERATIONS = 100000; // Workers' maximum
@@ -139,7 +139,15 @@ function grade(q, a) {
   return false;
 }
 
-const deckFor = (exam) => (exam === FINAL_EXAM ? QUESTIONS.slice() : QUESTIONS.filter((q) => q.part === exam));
+const EXAM_BY_ID = new Map(EXAMS.map((e) => [e.id, e]));
+const isFinal = (id) => !!EXAM_BY_ID.get(id) && EXAM_BY_ID.get(id).kind === 'final';
+function deckFor(id) {
+  const e = EXAM_BY_ID.get(id);
+  if (!e) return [];
+  return e.kind === 'final'
+    ? QUESTIONS.filter((q) => sectionOfPart(q.part) === e.section)
+    : QUESTIONS.filter((q) => q.part === id);
+}
 
 /* ------------------------------------------------------------------ */
 /* auth                                                                */
@@ -269,6 +277,21 @@ async function logout({ env, request, url }) {
 /* ------------------------------------------------------------------ */
 /* progress & gating                                                   */
 /* ------------------------------------------------------------------ */
+function lockMessage(e) {
+  if (e.kind === 'final') return 'Pass all six part exams of this section to unlock its final exam.';
+  if (e.local === 1) return `Pass the final exam of Section ${e.section - 1} (${PASS_PCT}%) to unlock this section.`;
+  return `Pass the Part ${e.section}.${e.local - 1} exam (${PASS_PCT}%) to unlock this part.`;
+}
+
+// Gating rule: a part needs the previous part to be passed; the first part of a later
+// section needs the previous section's final exam; a final needs all parts of its section.
+function earnedUnlock(e, passed) {
+  if (e.kind === 'final') return PARTS.filter((p) => p.section === e.section).every((p) => passed(p.g));
+  if (e.id === 1) return true;
+  if (e.local === 1) return passed(finalId(e.section - 1));
+  return passed(e.id - 1);
+}
+
 async function computeProgress(env, userId, isAdmin) {
   const [stats, unl] = await Promise.all([
     env.DB.prepare(
@@ -278,28 +301,20 @@ async function computeProgress(env, userId, isAdmin) {
   ]);
   const byExam = new Map(stats.results.map((r) => [r.exam, r]));
   const overrides = new Set(unl.results.map((r) => r.exam));
-  const passed = (e) => !!(byExam.get(e) && byExam.get(e).passed);
-  const exams = [];
-  for (let e = 1; e <= FINAL_EXAM; e++) {
-    const s = byExam.get(e);
-    let unlocked;
-    if (isAdmin) unlocked = true;
-    else if (e === 1) unlocked = true;
-    else if (e <= 6) unlocked = passed(e - 1) || overrides.has(e);
-    else unlocked = [1, 2, 3, 4, 5, 6].every(passed) || overrides.has(e);
-    exams.push({
-      exam: e,
-      title: e === FINAL_EXAM ? 'Final practice exam' : PART_TITLES[e - 1],
-      questions: deckFor(e).length,
-      unlocked,
-      overridden: overrides.has(e),
-      passed: passed(e),
+  const passed = (id) => !!(byExam.get(id) && byExam.get(id).passed);
+  return EXAMS.map((e) => {
+    const s = byExam.get(e.id);
+    return {
+      exam: e.id, kind: e.kind, section: e.section, local: e.local, title: e.title,
+      questions: deckFor(e.id).length,
+      unlocked: isAdmin || earnedUnlock(e, passed) || overrides.has(e.id),
+      overridden: overrides.has(e.id),
+      passed: passed(e.id),
       best: s ? s.best : null,
       attempts: s ? s.attempts : 0,
       last: s ? s.last : null,
-    });
-  }
-  return exams;
+    };
+  });
 }
 
 async function progress({ env, user }) {
@@ -308,16 +323,16 @@ async function progress({ env, user }) {
     `SELECT id, exam, pct, correct, total, passed, submitted_at FROM attempts
       WHERE user_id = ?1 AND status = 'submitted' ORDER BY submitted_at DESC, id DESC LIMIT 30`)
     .bind(user.id).all()).results;
-  return json({ passPct: PASS_PCT, exams, history });
+  const sections = SECTIONS.map((s) => ({ id: s.id, title: s.title, weight: s.weight, final: finalId(s.id) }));
+  return json({ passPct: PASS_PCT, sections, exams, history });
 }
 
 async function content({ env, user, params }) {
   const n = +params[0];
-  if (n < 1 || n > 6) throw new HttpError(404, 'Not found.');
-  const p = (await computeProgress(env, user.id, user.role === 'admin'))[n - 1];
-  if (!p.unlocked) throw new HttpError(403, `Pass the Part ${n - 1} exam (${PASS_PCT}%) to unlock this part.`);
-  const c = CONTENT[n - 1];
-  return json({ part: n, title: c.title, html: c.html });
+  if (!(n >= 1 && n <= PARTS.length)) throw new HttpError(404, 'Not found.');
+  const p = (await computeProgress(env, user.id, user.role === 'admin')).find((x) => x.exam === n);
+  if (!p.unlocked) throw new HttpError(403, lockMessage(p));
+  return json({ part: n, section: p.section, local: p.local, title: p.title, html: CONTENT[n - 1].html });
 }
 
 /* ------------------------------------------------------------------ */
@@ -325,16 +340,15 @@ async function content({ env, user, params }) {
 /* ------------------------------------------------------------------ */
 async function startExam({ env, user, params }) {
   const exam = +params[0];
-  if (exam < 1 || exam > FINAL_EXAM) throw new HttpError(404, 'Not found.');
-  const p = (await computeProgress(env, user.id, user.role === 'admin'))[exam - 1];
-  if (!p.unlocked) throw new HttpError(403, exam === FINAL_EXAM
-    ? 'Pass all six part exams to unlock the final exam.'
-    : `Pass the Part ${exam - 1} exam (${PASS_PCT}%) to unlock this part.`);
+  if (!EXAM_BY_ID.has(exam)) throw new HttpError(404, 'Not found.');
+  const p = (await computeProgress(env, user.id, user.role === 'admin')).find((x) => x.exam === exam);
+  if (!p.unlocked) throw new HttpError(403, lockMessage(p));
+  const timed = isFinal(exam);
 
   let att = await env.DB.prepare(
     `SELECT id, started_at FROM attempts WHERE user_id = ?1 AND exam = ?2 AND status = 'in_progress'
       ORDER BY id DESC LIMIT 1`).bind(user.id, exam).first();
-  if (att && exam === FINAL_EXAM && att.started_at + FINAL_SECONDS + FINAL_GRACE < now()) {
+  if (att && timed && att.started_at + FINAL_SECONDS + FINAL_GRACE < now()) {
     await env.DB.prepare(`UPDATE attempts SET status = 'expired' WHERE id = ?1`).bind(att.id).run();
     att = null;
   }
@@ -346,8 +360,8 @@ async function startExam({ env, user, params }) {
     attemptId: att.id,
     exam,
     startedAt: att.started_at,
-    limitSeconds: exam === FINAL_EXAM ? FINAL_SECONDS : null,
-    remainingSeconds: exam === FINAL_EXAM ? Math.max(0, att.started_at + FINAL_SECONDS - now()) : null,
+    limitSeconds: timed ? FINAL_SECONDS : null,
+    remainingSeconds: timed ? Math.max(0, att.started_at + FINAL_SECONDS - now()) : null,
     passPct: PASS_PCT,
     questions: deckFor(exam).map((q) => clientQuestion(q, att.id)),
   });
@@ -377,9 +391,11 @@ async function submitAttempt({ env, user, params, request }) {
   const body = await readBody(request);
   let answers = body.answers && typeof body.answers === 'object' ? body.answers : {};
   const deck = deckFor(att.exam);
+  const isAdmin = user.role === 'admin';
+  const before = await computeProgress(env, user.id, isAdmin);
 
   let status = 'submitted';
-  if (att.exam === FINAL_EXAM && att.started_at + FINAL_SECONDS + FINAL_GRACE < now()) {
+  if (isFinal(att.exam) && att.started_at + FINAL_SECONDS + FINAL_GRACE < now()) {
     status = 'expired'; answers = {};
   }
   const flags = deck.map((q) => (grade(q, answers[q.id]) ? 1 : 0));
@@ -399,8 +415,13 @@ async function submitAttempt({ env, user, params, request }) {
   }
   const done = await env.DB.prepare('SELECT * FROM attempts WHERE id = ?1').bind(id).first();
   const out = resultPayload(done, deck, answers);
-  const exams = await computeProgress(env, user.id, user.role === 'admin');
-  out.nextUnlocked = att.exam < FINAL_EXAM && passed ? att.exam + 1 : null;
+  const exams = await computeProgress(env, user.id, isAdmin);
+  // The next exam in learning order, if this pass just unlocked it.
+  const idx = EXAMS.findIndex((e) => e.id === att.exam);
+  const next = idx >= 0 ? EXAMS[idx + 1] : null;
+  const wasOpen = next ? before.find((x) => x.exam === next.id).unlocked : true;
+  const nowOpen = next ? exams.find((x) => x.exam === next.id).unlocked : false;
+  out.nextExam = passed && next && nowOpen && !wasOpen ? next.id : null;
   out.progress = exams;
   return json(out);
 }
@@ -441,15 +462,14 @@ async function adminOverview({ env }) {
         ORDER BY a.submitted_at DESC, a.id DESC LIMIT 12`).all(),
   ]);
   const byExam = new Map(perExam.results.map((r) => [r.exam, r]));
-  const funnel = [];
-  for (let e = 1; e <= FINAL_EXAM; e++) {
-    const r = byExam.get(e) || {};
-    funnel.push({
-      exam: e, title: e === FINAL_EXAM ? 'Final practice exam' : PART_TITLES[e - 1],
+  const funnel = EXAMS.map((e) => {
+    const r = byExam.get(e.id) || {};
+    return {
+      exam: e.id, kind: e.kind, section: e.section, local: e.local, title: e.title,
       attempts: r.attempts || 0, avgPct: r.avg_pct ?? null,
       usersTried: r.users_tried || 0, usersPassed: r.users_passed || 0,
-    });
-  }
+    };
+  });
   const qmap = new Map(QUESTIONS.map((q) => [q.id, q]));
   return json({
     totals, funnel, passPct: PASS_PCT,
@@ -464,10 +484,10 @@ async function adminOverview({ env }) {
 async function adminUsers({ env }) {
   const rows = (await env.DB.prepare(
     `SELECT u.id, u.name, u.email, u.role, u.created_at, u.last_seen,
-       (SELECT COUNT(DISTINCT exam) FROM attempts a WHERE a.user_id = u.id AND a.status = 'submitted' AND a.passed = 1 AND a.exam <= 6) AS parts_passed,
+       (SELECT COUNT(DISTINCT exam) FROM attempts a WHERE a.user_id = u.id AND a.status = 'submitted' AND a.passed = 1 AND a.exam < 100) AS parts_passed,
        (SELECT COUNT(*) FROM attempts a WHERE a.user_id = u.id AND a.status = 'submitted') AS attempts,
        (SELECT MAX(submitted_at) FROM attempts a WHERE a.user_id = u.id AND a.status = 'submitted') AS last_attempt,
-       (SELECT MAX(passed) FROM attempts a WHERE a.user_id = u.id AND a.exam = 7 AND a.status = 'submitted') AS final_passed
+       (SELECT COUNT(DISTINCT exam) FROM attempts a WHERE a.user_id = u.id AND a.status = 'submitted' AND a.passed = 1 AND a.exam >= 100) AS finals_passed
        FROM users u ORDER BY u.created_at DESC LIMIT 1000`).all()).results;
   return json({ users: rows });
 }
@@ -496,7 +516,7 @@ async function adminSetRole({ env, user, params, request }) {
 async function adminUnlock({ env, user, params, request }) {
   const id = +params[0];
   const { exam, unlock } = await readBody(request);
-  if (!isInt(exam) || exam < 2 || exam > FINAL_EXAM) throw bad('Invalid exam.');
+  if (!isInt(exam) || exam === 1 || !EXAM_BY_ID.has(exam)) throw bad('Invalid exam.');
   const exists = await env.DB.prepare('SELECT id FROM users WHERE id = ?1').bind(id).first();
   if (!exists) throw new HttpError(404, 'User not found.');
   if (unlock) {
@@ -548,8 +568,8 @@ const ROUTES = [
   ['GET', /^\/api\/me$/, 'public', async ({ env, user }) =>
     json({ user: user ? publicUser(user) : null, googleClientId: env.GOOGLE_CLIENT_ID || null })],
   ['GET', /^\/api\/progress$/, 'user', progress],
-  ['GET', /^\/api\/content\/(\d)$/, 'user', content],
-  ['POST', /^\/api\/exams\/(\d)\/start$/, 'user', startExam],
+  ['GET', /^\/api\/content\/(\d+)$/, 'user', content],
+  ['POST', /^\/api\/exams\/(\d+)\/start$/, 'user', startExam],
   ['POST', /^\/api\/attempts\/(\d+)\/submit$/, 'user', submitAttempt],
   ['GET', /^\/api\/attempts\/(\d+)$/, 'user', getAttempt],
   ['GET', /^\/api\/admin\/overview$/, 'admin', adminOverview],

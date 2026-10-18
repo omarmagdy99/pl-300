@@ -1,0 +1,60 @@
+<div class="crumb">Section 2 · Part 3 of 6</div>
+    <h1>Date tables &amp; time intelligence</h1>
+    <p class="lead">Year-to-date, last year, rolling 3 months: all of them need a proper date table.</p>
+
+    <h2>1. What a good date table looks like</h2>
+    <ul>
+      <li>One row per day, <b>contiguous</b> (no missing dates) and covering <b>full years</b>.</li>
+      <li>A column of <b>Date</b> data type with <b>unique</b> values.</li>
+      <li>Related to the fact table’s date column (one-to-many, single direction).</li>
+      <li><b>Marked as date table</b> (Table tools → Mark as date table) and the date column chosen.</li>
+      <li>Extra columns: Year, Quarter, Month number, Month name (sorted by Month number), Week, Fiscal year…</li>
+    </ul>
+
+    <h2>2. Creating one</h2>
+<pre class="code"><span class="c">// DAX calculated table</span>
+Date = <span class="k">CALENDAR</span> ( <span class="k">DATE</span> ( 2020, 1, 1 ), <span class="k">DATE</span> ( 2026, 12, 31 ) )
+
+<span class="c">// or let DAX scan every date column in the model and return whole years</span>
+Date = <span class="k">CALENDARAUTO</span> ()
+
+Year        = <span class="k">YEAR</span> ( 'Date'[Date] )
+MonthNumber = <span class="k">MONTH</span> ( 'Date'[Date] )
+Month       = <span class="k">FORMAT</span> ( 'Date'[Date], <span class="s">"MMMM"</span> )   <span class="c">// sort by MonthNumber</span>
+Quarter     = <span class="s">"Q"</span> &amp; <span class="k">QUARTER</span> ( 'Date'[Date] )</pre>
+    <p>You can also build the date table in Power Query or load it from your data warehouse. <b>Auto date/time</b> (File → Options → Data Load → Time intelligence) creates a hidden date table for every date column. Turn it off when you use your own date table to save memory.</p>
+
+    <h2>3. Time intelligence functions</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Function</th><th>Returns</th></tr>
+      <tr><td><code>TOTALYTD / TOTALQTD / TOTALMTD</code></td><td>Running total for the year / quarter / month so far (a value)</td></tr>
+      <tr><td><code>DATESYTD / DATESQTD / DATESMTD</code></td><td>The dates of the period so far (a table, used inside CALCULATE)</td></tr>
+      <tr><td><code>SAMEPERIODLASTYEAR</code></td><td>The same dates one year earlier</td></tr>
+      <tr><td><code>DATEADD(dates, n, interval)</code></td><td>Shifts dates by n days / months / quarters / years</td></tr>
+      <tr><td><code>DATESINPERIOD</code></td><td>A window ending at a date, e.g. the last 3 months</td></tr>
+      <tr><td><code>DATESBETWEEN</code></td><td>Dates between a start and an end</td></tr>
+      <tr><td><code>PREVIOUSMONTH / PARALLELPERIOD</code></td><td>The previous month / a parallel period</td></tr>
+    </table></div>
+<pre class="code">Sales YTD = <span class="k">TOTALYTD</span> ( [Total Sales], <span class="s">'Date'</span>[Date] )
+
+Sales YTD (FY ends 30 June) =
+<span class="k">TOTALYTD</span> ( [Total Sales], <span class="s">'Date'</span>[Date], <span class="s">"6/30"</span> )
+
+Sales LY = <span class="k">CALCULATE</span> ( [Total Sales], <span class="k">SAMEPERIODLASTYEAR</span> ( <span class="s">'Date'</span>[Date] ) )
+
+YoY % = <span class="k">DIVIDE</span> ( [Total Sales] - [Sales LY], [Sales LY] )
+
+Rolling 3M =
+<span class="k">CALCULATE</span> (
+    [Total Sales],
+    <span class="k">DATESINPERIOD</span> ( <span class="s">'Date'</span>[Date], <span class="k">MAX</span> ( <span class="s">'Date'</span>[Date] ), -3, <span class="k">MONTH</span> )
+)</pre>
+
+    <div class="note trap"><b class="t">Exam trap</b>Always pass the <b>date column of the date table</b>, not the fact table’s date column, to time intelligence functions. Wrong or blank results usually mean gaps in the dates or a missing relationship.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Contiguous dates, full years, unique Date column, related and marked as date table.</li>
+        <li><code>CALENDAR</code> needs start and end; <code>CALENDARAUTO</code> finds them for you.</li>
+        <li>Fiscal year: third argument of <code>TOTALYTD</code>, for example <code>"6/30"</code>.</li>
+      </ul>
+    </div>

@@ -9,6 +9,7 @@
 //   dropdown { tpl:"text with {0} and {1}", dd:[{opts:[...], ans:<index>}, ...] }
 //   order    { items:[...in the CORRECT order] }   (the server shuffles them)
 
+// (titles now live in src/course.js; kept here only so older code keeps working)
 export const PART_TITLES = [
   'Get or connect to data',
   'Power Query Editor & profiling',

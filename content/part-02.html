@@ -1,0 +1,40 @@
+<div class="crumb">Section 1 · Part 2 of 6</div>
+    <h1>Power Query Editor &amp; data profiling</h1>
+    <p class="lead">Find out what is wrong with your data <i>before</i> you fix it.</p>
+
+    <h2>1. The editor layout</h2>
+    <ul>
+      <li><b>Queries pane</b> (left) — all queries and groups.</li>
+      <li><b>Data preview</b> (center) — a sample of the data.</li>
+      <li><b>Query Settings</b> (right) — Name, Properties, and <b>Applied Steps</b>. Every step is stored as M code.</li>
+      <li><b>Formula bar</b> — M for the selected step. <b>Advanced Editor</b> shows the whole query.</li>
+      <li><b>View → Query Dependencies</b> shows how queries feed each other.</li>
+    </ul>
+
+    <h2>2. The three profiling tools (View tab → Data Preview)</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Tool</th><th>What it shows</th></tr>
+      <tr><td><b>Column quality</b></td><td>% of <span style="color:var(--green)">Valid</span>, <span style="color:var(--red)">Error</span> and Empty values per column</td></tr>
+      <tr><td><b>Column distribution</b></td><td>Frequency bar chart + count of <b>distinct</b> and <b>unique</b> values per column</td></tr>
+      <tr><td><b>Column profile</b></td><td>Detailed statistics (count, min, max, average, std. dev. …) and value distribution for the <i>selected</i> column</td></tr>
+    </table></div>
+
+    <h2>3. Distinct vs unique</h2>
+    <table class="tbl">
+      <tr><th></th><th>Meaning</th><th>Values 1,1,2,3</th></tr>
+      <tr><td><b>Distinct</b></td><td>Number of different values (each counted once)</td><td>3</td></tr>
+      <tr><td><b>Unique</b></td><td>Number of values that appear <i>exactly once</i></td><td>2</td></tr>
+    </table>
+    <p>A column is a good <b>key for the “one” side of a relationship</b> when distinct = unique = row count and there are no empty or error values.</p>
+
+    <h2>4. Profiling scope</h2>
+    <p>By default profiling is based on the <b>top 1,000 rows</b>. To profile everything, click the status bar at the bottom-left and choose <b>Column profiling based on entire data set</b>.</p>
+
+    <div class="note trap"><b class="t">Exam trap</b>Profiling results exist only inside the Power Query Editor. They are not stored in the model or shown in the report.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Column quality → valid / error / empty. Column distribution → distinct &amp; unique.</li>
+        <li>Default sample = 1,000 rows; switch to the entire data set when you need accuracy.</li>
+        <li>Applied Steps = the recipe; each step is one line of M.</li>
+      </ul>
+    </div>

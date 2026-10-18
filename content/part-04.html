@@ -1,0 +1,44 @@
+<div class="crumb">Section 1 · Part 4 of 6</div>
+    <h1>Shape &amp; transform tables</h1>
+    <p class="lead">Reshape wide tables, aggregate rows, split and create columns.</p>
+
+    <h2>1. Pivot, unpivot, transpose</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Command</th><th>Does</th><th>Typical case</th></tr>
+      <tr><td><b>Unpivot Columns</b></td><td>Turns the <i>selected</i> columns into Attribute / Value rows</td><td>Fixed set of columns</td></tr>
+      <tr><td><b>Unpivot Other Columns</b></td><td>Unpivots everything <i>except</i> the selected columns</td><td><b>New columns (months) will appear later</b></td></tr>
+      <tr><td><b>Unpivot Only Selected Columns</b></td><td>Same as Unpivot Columns (keeps only those selected)</td><td>—</td></tr>
+      <tr><td><b>Pivot Column</b></td><td>Turns the values of a column into new column headers; needs a Values column and an aggregation</td><td>Rows → columns</td></tr>
+      <tr><td><b>Transpose</b></td><td>Swaps rows and columns (headers are lost)</td><td>Rotated tables</td></tr>
+    </table></div>
+<pre class="code"><span class="c">// Product | Jan | Feb | Mar   →   Product | Month | Sales</span>
+Table.UnpivotOtherColumns(Source, {<span class="s">"Product"</span>}, <span class="s">"Month"</span>, <span class="s">"Sales"</span>)</pre>
+
+    <h2>2. Group By</h2>
+    <p><b>Transform → Group By</b>. Aggregations: Sum, Average, Min, Max, Median, Count Rows, Count Distinct Rows, <b>All Rows</b> (nested table). Use <i>Advanced</i> to group by several columns or add several aggregations.</p>
+
+    <h2>3. Split &amp; merge columns</h2>
+    <ul>
+      <li><b>Split Column</b> — by delimiter, number of characters, positions, lowercase→uppercase, digit→non-digit. Output <i>into columns</i> or <i>into rows</i>.</li>
+      <li><b>Merge Columns</b> — combine columns with a separator (opposite of split).</li>
+      <li><b>Extract</b> — Text Before / After / Between Delimiters, First/Last Characters, Length.</li>
+    </ul>
+
+    <h2>4. Add Column tab</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Command</th><th>Use</th></tr>
+      <tr><td>Column From Examples</td><td>Type a few sample outputs; Power Query writes the formula</td></tr>
+      <tr><td>Custom Column</td><td>Write your own M expression</td></tr>
+      <tr><td>Conditional Column</td><td>If / else-if / else rules without code</td></tr>
+      <tr><td>Index Column</td><td>Sequential numbers from 0, 1 or custom (<i>breaks query folding</i>)</td></tr>
+      <tr><td>Duplicate Column</td><td>Copy of an existing column</td></tr>
+    </table></div>
+
+    <div class="note trap"><b class="t">Exam trap</b>If new columns can appear in the future, choose <b>Unpivot Other Columns</b>. Selecting the old month columns and choosing <i>Unpivot Columns</i> would miss the new ones.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Wide → tall = Unpivot. Tall → wide = Pivot.</li>
+        <li>Conditional Column for rules; Column From Examples for patterns.</li>
+        <li>Group By → “All Rows” gives you a nested table.</li>
+      </ul>
+    </div>

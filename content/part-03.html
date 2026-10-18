@@ -1,0 +1,51 @@
+<div class="crumb">Section 1 · Part 3 of 6</div>
+    <h1>Clean the data</h1>
+    <p class="lead">Fix types, nulls, errors, spaces, duplicates and header rows.</p>
+
+    <h2>1. Data types</h2>
+    <ul>
+      <li>Set types on the column header icon or <b>Transform → Data Type</b>. Always set types explicitly.</li>
+      <li><b>Using Locale…</b> converts text that follows another culture’s format (for example <code>31/03/2024</code> as English (United Kingdom)).</li>
+      <li>Auto detection: <b>File → Options → Data Load → Type Detection</b>.</li>
+    </ul>
+
+    <h2>2. Nulls and errors</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Command</th><th>Effect</th></tr>
+      <tr><td>Replace Values</td><td>Swap a value for another (type <code>null</code> to make a real null)</td></tr>
+      <tr><td>Replace Errors</td><td>Keeps the row; error cells get a new value</td></tr>
+      <tr><td>Remove Errors</td><td><b>Deletes</b> the rows that contain errors</td></tr>
+      <tr><td>Remove Empty / Remove Blank Rows</td><td>Deletes empty rows</td></tr>
+      <tr><td>Fill Down / Fill Up</td><td>Copies the nearest non-null value into the null cells below / above (typical for grouped Excel reports)</td></tr>
+    </table></div>
+<pre class="code"><span class="c">// "N/A" → null first, THEN change the type</span>
+<span class="k">let</span>
+    Source = Excel.Workbook(File.Contents(<span class="s">"C:\Sales.xlsx"</span>), <span class="k">null</span>, <span class="k">true</span>),
+    Replaced = Table.ReplaceValue(Source, <span class="s">"N/A"</span>, <span class="k">null</span>, Replacer.ReplaceValue, {<span class="s">"Sales"</span>}),
+    Typed = Table.TransformColumnTypes(Replaced, {{<span class="s">"Sales"</span>, <span class="k">type</span> number}}),
+    Filled = Table.FillDown(Typed, {<span class="s">"Region"</span>})
+<span class="k">in</span>
+    Filled</pre>
+
+    <h2>3. Text clean-up</h2>
+    <ul>
+      <li><b>Trim</b> — removes leading and trailing spaces.</li>
+      <li><b>Clean</b> — removes non-printable characters.</li>
+      <li><b>Format</b>: lowercase, UPPERCASE, Capitalize Each Word.</li>
+    </ul>
+
+    <h2>4. Duplicates and rows</h2>
+    <ul>
+      <li><b>Remove Duplicates</b> is <b>case-sensitive</b>. “Cairo” and “cairo” are different — lowercase first if needed.</li>
+      <li><b>Keep / Remove Rows</b>: Top, Bottom, Alternate, Range, Duplicates, Errors.</li>
+      <li><b>Use First Row as Headers</b> / <b>Use Headers as First Row</b>.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b><b>Remove Errors</b> loses rows; <b>Replace Errors</b> keeps them. Replacing text such as “N/A” <i>before</i> converting the type avoids creating errors in the first place.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Order matters: clean values → then change type.</li>
+        <li>Fill Down for grouped data, Trim vs Clean, Using Locale for foreign dates.</li>
+        <li>Remove Duplicates is case-sensitive.</li>
+      </ul>
+    </div>

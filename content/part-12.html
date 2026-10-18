@@ -1,0 +1,55 @@
+<div class="crumb">Section 2 · Part 6 of 6</div>
+    <h1>Optimize model performance</h1>
+    <p class="lead">Smaller models refresh faster and answer faster. Measure first, then fix the real bottleneck.</p>
+
+    <h2>1. Make the model smaller</h2>
+    <ul>
+      <li><b>Remove</b> columns and rows you don’t need (before loading, in Power Query).</li>
+      <li>Lower <b>cardinality</b>: split <code>DateTime</code> into Date and Time (or keep only the date), round long decimals, avoid GUID / unique-text columns in big tables.</li>
+      <li>Use the right <b>data types</b> (integers compress better than text).</li>
+      <li>Turn off <b>Auto date/time</b> and use one date table.</li>
+      <li>Do calculations in the source or Power Query rather than as <b>calculated columns</b> on large tables.</li>
+      <li>Choose the right <b>granularity</b>: do you really need one row per second, or is daily enough? Use <b>aggregation tables</b> (user-defined aggregations) with DirectQuery.</li>
+      <li>Star schema, single-direction relationships, no unnecessary many-to-many.</li>
+    </ul>
+
+    <h2>2. Find the slow parts</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Tool</th><th>Use it to</th></tr>
+      <tr><td><b>Performance Analyzer</b> (View → Performance analyzer → Start recording → Refresh visuals)</td><td>See how long each visual takes, split into <b>DAX query</b>, <b>Visual display</b> and <b>Other</b>; copy the visual’s DAX query</td></tr>
+      <tr><td><b>DAX query view</b></td><td>Write, run and test DAX queries (paste the copied visual query here) and see a measure’s results</td></tr>
+      <tr><td>DAX Studio / Tabular Editor / VertiPaq Analyzer (external)</td><td>Server timings, column sizes, best-practice rules</td></tr>
+    </table></div>
+    <p>Reading the result: a high <b>DAX query</b> time means a slow measure or model; a high <b>Visual display</b> time means too many data points or a heavy visual; a high <b>Other</b> time means the visual waited for other visuals.</p>
+
+    <h2>3. Write faster DAX</h2>
+<pre class="code"><span class="c">// slow: [Total Sales] is evaluated three times</span>
+Margin % bad =
+<span class="k">IF</span> ( [Total Sales] &gt; 0, ( [Total Sales] - [Total Cost] ) / [Total Sales], <span class="k">BLANK</span> () )
+
+<span class="c">// better: variables evaluate once and read better</span>
+Margin % =
+<span class="k">VAR</span> Sales = [Total Sales]
+<span class="k">VAR</span> Cost  = [Total Cost]
+<span class="k">RETURN</span>
+    <span class="k">DIVIDE</span> ( Sales - Cost, Sales )</pre>
+    <ul>
+      <li>Use <code>VAR</code>, <code>DIVIDE</code> and Boolean filters; avoid <code>FILTER ( WholeTable, … )</code> when a column filter works.</li>
+      <li>Prefer measures to calculated columns; avoid bi-directional filters and many-to-many on big tables.</li>
+    </ul>
+
+    <h2>4. Report-level tips</h2>
+    <ul>
+      <li>Fewer visuals and slicers per page; use Top N or filters to limit data points.</li>
+      <li>Query reduction: add an <b>Apply</b> button to slicers/filters.</li>
+      <li>Large data: <b>incremental refresh</b>, DirectQuery or composite models.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>Bi-directional relationships and calculated columns usually make a model <b>bigger or slower</b>, not faster. To <i>find</i> a slow visual use Performance Analyzer; to <i>test</i> its DAX use DAX query view.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Remove columns/rows, lower cardinality, disable Auto date/time.</li>
+        <li>Performance Analyzer finds the slow visual; DAX query view runs its query.</li>
+        <li>Use variables and DIVIDE in measures.</li>
+      </ul>
+    </div>
