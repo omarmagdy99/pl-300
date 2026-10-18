@@ -52,6 +52,9 @@ input.t:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var
 .err{background:var(--red-l);border-left:4px solid var(--red);padding:8px 12px;margin:12px 0;color:var(--red)}
 .hint{color:var(--muted);font-size:13px;margin-top:4px}
 .alt{margin-top:16px;color:var(--muted)}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:18px 0 2px}
+.or:before,.or:after{content:"";flex:1;height:1px;background:var(--border)}
+#gbtn{min-height:44px;display:flex;justify-content:center;margin-top:14px}
 .spinner{padding:60px;text-align:center;color:var(--muted)}
 
 /* dashboard */
@@ -243,6 +246,7 @@ function viewAuth(mode){
   const reg=mode==='register';
   view(`<div class="card center"><h1>${reg?'Create your account':'Sign in'}</h1>
     <p class="sub">${reg?'Register to save your progress and unlock each part as you pass it.':'Welcome back. Continue where you stopped.'}</p>
+    ${state.gid?`<div id="gbtn"></div><div class="or">or continue with your email</div>`:''}
     <form id="af" novalidate>
       ${reg?`<label class="f" for="nm">Full name</label><input class="t" id="nm" autocomplete="name" maxlength="80" required>`:''}
       <label class="f" for="em">Email</label><input class="t" id="em" type="email" autocomplete="email" maxlength="120" required>
@@ -261,6 +265,22 @@ function viewAuth(mode){
     }catch(x){er.textContent=x.message;er.hidden=false;b.disabled=false}
   };
   (reg?$('#nm'):$('#em')).focus();
+  mountGoogle(reg);
+}
+function loadGsi(){return new Promise((res,rej)=>{
+  if(window.google&&google.accounts&&google.accounts.id)return res();
+  const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function mountGoogle(reg){
+  const box=$('#gbtn');if(!state.gid||!box)return;
+  try{
+    await loadGsi();
+    google.accounts.id.initialize({client_id:state.gid,ux_mode:'popup',callback:async r=>{
+      const er=$('#ae');
+      try{const u=await api('/google','POST',{credential:r.credential});state.me=u.user;renderHeader();go('#/dashboard')}
+      catch(x){if(er){er.textContent=x.message;er.hidden=false}else toast(x.message)}
+    }});
+    google.accounts.id.renderButton(box,{theme:'outline',size:'large',shape:'rectangular',text:reg?'signup_with':'signin_with',width:Math.min(340,box.clientWidth||340)});
+  }catch{box.innerHTML='<div class="hint">Google sign-in is unavailable right now. Use your email instead.</div>'}
 }
 
 /* ================= dashboard ================= */
@@ -613,7 +633,7 @@ async function route(){
 window.addEventListener('hashchange',route);
 window.addEventListener('beforeunload',e=>{if(E&&E.screen){saveDraft()}});
 (async()=>{
-  try{state.me=(await api('/me')).user}catch{state.me=null}
+  try{const m=await api('/me');state.me=m.user;state.gid=m.googleClientId||null}catch{state.me=null}
   route();
 })();
 </script>

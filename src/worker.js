@@ -1,5 +1,6 @@
 import { QUESTIONS, PART_TITLES } from './questions.js';
 import { CONTENT } from './content.js';
+import { verifyGoogleIdToken, TokenError } from './google.js';
 
 /* ------------------------------------------------------------------ */
 /* constants                                                           */
@@ -187,6 +188,9 @@ async function register({ env, request, url }) {
   if ((await throttleCount(env, 'reg:' + ip, REGISTER_WINDOW)) >= REGISTER_MAX)
     throw new HttpError(429, 'Too many sign-ups from your network. Try again later.');
   const { email, password, name } = cleanCreds(await readBody(request), { needName: true });
+  // An unverified password sign-up must not be able to claim an admin email.
+  if (env.GOOGLE_CLIENT_ID && adminEmails(env).includes(email))
+    throw new HttpError(403, 'This email must sign in with Google.');
   const exists = await env.DB.prepare('SELECT id FROM users WHERE email = ?1').bind(email).first();
   if (exists) throw new HttpError(409, 'An account with this email already exists.');
   await throttleHit(env, 'reg:' + ip);
@@ -214,6 +218,44 @@ async function login({ env, request, url }) {
   }
   await env.DB.prepare('DELETE FROM throttle WHERE key = ?1').bind(keyEmail).run();
   await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?1').bind(now()).run();
+  return json({ user: publicUser(u) }, 200, { 'Set-Cookie': await createSession(env, url, u.id) });
+}
+
+async function jwks(force) {
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/certs',
+    force ? { cf: { cacheTtl: 0 } } : { cf: { cacheTtl: 3600, cacheEverything: true } });
+  if (!r.ok) throw new Error('Could not load Google signing keys');
+  return r.json();
+}
+
+async function googleLogin({ env, request, url }) {
+  if (!env.GOOGLE_CLIENT_ID) throw new HttpError(404, 'Google sign-in is not configured.');
+  const keyIp = 'googleip:' + clientIp(request);
+  if ((await throttleCount(env, keyIp, LOGIN_WINDOW)) >= LOGIN_MAX_FAILS * 3)
+    throw new HttpError(429, 'Too many failed attempts. Try again later.');
+  const { credential } = await readBody(request);
+  let g;
+  try {
+    g = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID, jwks, now());
+  } catch (e) {
+    if (e instanceof TokenError) { await throttleHit(env, keyIp); throw new HttpError(401, 'Google sign-in failed. Please try again.'); }
+    throw e;
+  }
+  let u = await env.DB.prepare('SELECT * FROM users WHERE email = ?1').bind(g.email).first();
+  if (!u) {
+    // Google proved ownership of the email; the random password can never be guessed
+    // (an admin can set a real one later if the person wants password login too).
+    const salt = randHex(16);
+    const role = adminEmails(env).includes(g.email) ? 'admin' : 'user';
+    const name = g.name.trim().replace(/\s+/g, ' ').slice(0, 80) || g.email.split('@')[0];
+    u = await env.DB.prepare(
+      `INSERT INTO users(email, name, pw_hash, pw_salt, role, created_at, last_seen)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6) RETURNING id, name, email, role`)
+      .bind(g.email, name, randHex(32), salt, role, now()).first();
+  } else if (u.role !== 'admin' && adminEmails(env).includes(g.email)) {
+    await env.DB.prepare(`UPDATE users SET role = 'admin' WHERE id = ?1`).bind(u.id).run();
+    u.role = 'admin';
+  }
   return json({ user: publicUser(u) }, 200, { 'Set-Cookie': await createSession(env, url, u.id) });
 }
 
@@ -501,8 +543,10 @@ async function adminDeleteUser({ env, user, params }) {
 const ROUTES = [
   ['POST', /^\/api\/register$/, 'public', register],
   ['POST', /^\/api\/login$/, 'public', login],
+  ['POST', /^\/api\/google$/, 'public', googleLogin],
   ['POST', /^\/api\/logout$/, 'public', logout],
-  ['GET', /^\/api\/me$/, 'public', async ({ user }) => json({ user: user ? publicUser(user) : null })],
+  ['GET', /^\/api\/me$/, 'public', async ({ env, user }) =>
+    json({ user: user ? publicUser(user) : null, googleClientId: env.GOOGLE_CLIENT_ID || null })],
   ['GET', /^\/api\/progress$/, 'user', progress],
   ['GET', /^\/api\/content\/(\d)$/, 'user', content],
   ['POST', /^\/api\/exams\/(\d)\/start$/, 'user', startExam],

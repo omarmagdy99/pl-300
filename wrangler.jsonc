@@ -18,7 +18,8 @@
     }
   ],
   "vars": {
-    "ADMIN_EMAILS": "omarmagdy99860@gmail.com"
+    "ADMIN_EMAILS": "omarmagdy99860@gmail.com",
+    "GOOGLE_CLIENT_ID": ""
   },
   "observability": { "enabled": true }
 }
