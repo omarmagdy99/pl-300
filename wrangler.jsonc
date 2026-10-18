@@ -19,7 +19,7 @@
   ],
   "vars": {
     "ADMIN_EMAILS": "omarmagdy99860@gmail.com",
-    "GOOGLE_CLIENT_ID": ""
+    "GOOGLE_CLIENT_ID": "238883826362-uup4m89aj1hch5pa7qh6kaavurkk4gsq.apps.googleusercontent.com"
   },
   "observability": { "enabled": true }
 }
