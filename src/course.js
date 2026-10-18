@@ -37,6 +37,16 @@ export const SECTIONS = [
       'Tables, matrices, KPIs & paginated reports',
     ],
   },
+  {
+    id: 4, title: 'Manage and secure Power BI', weight: '15–20%',
+    parts: [
+      'Workspaces & roles',
+      'Share, apps & dashboards',
+      'Row-level security',
+      'Refresh & gateways',
+      'Governance: labels, endorsement & pipelines',
+    ],
+  },
 ];
 
 export const finalId = (section) => 100 + section;

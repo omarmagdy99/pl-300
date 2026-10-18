@@ -1,0 +1,40 @@
+<div class="crumb">Section 4 · Part 5 of 5</div>
+    <h1>Governance: labels, endorsement &amp; pipelines</h1>
+    <p class="lead">Classify data, mark trusted content, understand dependencies and release changes safely.</p>
+
+    <h2>1. Sensitivity labels</h2>
+    <ul>
+      <li>Labels (for example <i>General</i>, <i>Confidential</i>) come from <b>Microsoft Purview Information Protection</b> and are enabled by an admin.</li>
+      <li>You can apply them to semantic models, reports, dashboards and dataflows in Desktop and the service.</li>
+      <li>The label and its protection <b>follow the data</b> when it is exported to Excel, PowerPoint or PDF, and can be <b>inherited</b> by downstream content.</li>
+      <li>Admins can make labeling <b>mandatory</b>.</li>
+    </ul>
+
+    <h2>2. Endorsement</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Level</th><th>Meaning</th><th>Who</th></tr>
+      <tr><td><b>Promoted</b></td><td>“This is ready to use”</td><td>Any user with <b>edit permission</b> on the item</td></tr>
+      <tr><td><b>Certified</b></td><td>Reviewed and meets organizational standards</td><td>Only <b>authorized reviewers</b> chosen by an admin</td></tr>
+      <tr><td><b>Master data</b></td><td>The authoritative source of a type of data</td><td>Authorized users (for data items)</td></tr>
+    </table></div>
+    <p>Endorsed items rank higher in search and show a badge, which helps people find the right model and avoid duplicates.</p>
+
+    <h2>3. Lineage, impact and usage</h2>
+    <ul>
+      <li><b>Lineage view</b>: the chain data source → dataflow → semantic model → report / dashboard.</li>
+      <li><b>Impact analysis</b>: before changing a model, see which reports and dashboards downstream would be affected (and notify their contacts).</li>
+      <li><b>Usage metrics report</b>: who views your report and how often.</li>
+      <li>Admins use the <b>Admin portal</b> (tenant settings such as who can export or publish to web) and activity / audit logs.</li>
+    </ul>
+
+    <h2>4. Deployment pipelines</h2>
+    <p>A <b>deployment pipeline</b> moves content through <b>Development → Test → Production</b>; each stage is a workspace. You can <b>compare stages</b> and set <b>deployment rules</b> (for example a different data source or parameter value per stage). They need <b>Premium / PPU / Fabric</b> capacity, not a Free license.</p>
+
+    <div class="note trap"><b class="t">Exam trap</b>Endorsement shows <i>trust</i>; sensitivity labels protect <i>data</i>; RLS restricts <i>rows</i>. “Which reports break if I change this model?” → <b>Impact analysis</b>, not Usage metrics.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Promoted = any editor; Certified = authorized reviewer.</li>
+        <li>Sensitivity labels persist on export.</li>
+        <li>Pipelines = Dev → Test → Prod with rules; lineage + impact analysis show dependencies.</li>
+      </ul>
+    </div>

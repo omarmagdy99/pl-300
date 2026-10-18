@@ -36,7 +36,7 @@ const stamp = Date.now();
 const admin = client(), u1 = client(), anon = client(), other = client();
 
 /* ---------- structure ---------- */
-ok(EXAMS.length === 21 && PARTS.length === 18 && SECTIONS.length === 3, 'course has 18 parts, 3 finals');
+ok(EXAMS.length === PARTS.length + SECTIONS.length && SECTIONS.length === 4, `course has ${PARTS.length} parts and ${SECTIONS.length} finals`);
 ok(EXAMS.every((e) => deck(e.id).length > 0), 'every exam has questions');
 
 /* ---------- accounts ---------- */
@@ -50,7 +50,7 @@ r = await u1('/register', 'POST', { name: 'Dup', email, password: 'StudentPass1'
 
 /* ---------- gating chain, section 1 ---------- */
 r = await u1('/progress');
-ok(r.d.exams.length === 21 && r.d.sections.length === 3, 'progress lists 21 exams and 3 sections');
+ok(r.d.exams.length === EXAMS.length && r.d.sections.length === SECTIONS.length, `progress lists ${EXAMS.length} exams`);
 ok(r.d.exams.filter((x) => x.unlocked).map((x) => x.exam).join() === '1', 'only Part 1.1 unlocked initially');
 r = await u1('/content/2'); ok(r.s === 403, 'Part 1.2 content blocked');
 r = await u1('/content/1'); ok(r.s === 200 && r.d.html.length > 500, 'Part 1.1 content served');
@@ -74,16 +74,22 @@ t = await take(u1, 101, false); ok(!t.sub.d.passed && t.start.d.limitSeconds ===
 r = await u1('/content/7'); ok(r.s === 403, 'Section 2 locked after failing the final');
 t = await take(u1, 101); ok(t.sub.d.passed && t.sub.d.nextExam === 7 && t.sub.d.total === deck(101).length, 'passing the final unlocks Section 2');
 
-/* ---------- section 2 and 3 ---------- */
-r = await u1('/content/7'); ok(r.s === 200 && r.d.html.includes('star schema'), 'Section 2 Part 1 content served');
-r = await u1('/content/9'); ok(r.s === 403, 'Part 2.3 locked');
-for (let g = 7; g <= 12; g++) { t = await take(u1, g); ok(t.sub.d.passed, `Part 2.${g - 6} passed (${t.sub.d.total} questions)`); }
-r = await u1('/content/13'); ok(r.s === 403, 'Section 3 locked before the Section 2 final');
-t = await take(u1, 102); ok(t.sub.d.passed && t.sub.d.nextExam === 13, 'Section 2 final passes and unlocks Section 3');
-for (let g = 13; g <= 18; g++) { t = await take(u1, g); ok(t.sub.d.passed, `Part 3.${g - 12} passed (${t.sub.d.total} questions)`); }
-t = await take(u1, 103); ok(t.sub.d.passed && t.sub.d.nextExam == null, 'Section 3 final passes; programme complete');
-for (let g = 1; g <= 18; g++) { r = await u1('/content/' + g); if (r.s !== 200 || r.d.html.length < 500) ok(false, 'content ' + g); }
-ok(true, 'all 18 content parts are served once unlocked');
+/* ---------- later sections: each needs the previous section's final ---------- */
+// walk sections in order: section 1's final already passed above, so section 2 is open
+for (const sec of SECTIONS.slice(1)) {
+  const parts = PARTS.filter((p) => p.section === sec.id);
+  r = await u1('/content/' + parts[0].g); ok(r.s === 200, `Section ${sec.id} opens after the previous final`);
+  r = await u1('/exams/' + finalId(sec.id) + '/start', 'POST'); ok(r.s === 403, `Section ${sec.id} final locked until its parts are passed`);
+  for (const p of parts) { t = await take(u1, p.g); ok(t.sub.d.passed, `Part ${sec.id}.${p.local} passed (${t.sub.d.total} questions)`); }
+  const after = PARTS.find((p) => p.section === sec.id + 1);
+  if (after) { r = await u1('/content/' + after.g); ok(r.s === 403, `Section ${sec.id + 1} still locked before the Section ${sec.id} final`); }
+  t = await take(u1, finalId(sec.id));
+  const last = SECTIONS[SECTIONS.length - 1].id === sec.id;
+  ok(t.sub.d.passed && t.sub.d.total === deck(finalId(sec.id)).length, `Section ${sec.id} final passed (${t.sub.d.total} questions)`);
+  ok(last ? t.sub.d.nextExam == null : t.sub.d.nextExam === PARTS.find((p) => p.section === sec.id + 1).g, last ? 'last final ends the programme' : `Section ${sec.id + 1} unlocked by the final`);
+}
+for (const p of PARTS) { r = await u1('/content/' + p.g); if (r.s !== 200 || r.d.html.length < 500) ok(false, 'content ' + p.g); }
+ok(true, 'all parts are served once unlocked');
 r = await u1('/progress'); ok(r.d.exams.every((x) => x.passed && x.unlocked), 'dashboard shows everything passed');
 
 /* ---------- tampering / isolation ---------- */
@@ -96,17 +102,17 @@ r = await u1('/logout', 'POST', {}, { Origin: 'https://evil.example' }); ok(r.s 
 
 /* ---------- admin ---------- */
 r = await u1('/admin/overview'); ok(r.s === 403, 'student blocked from admin API');
-r = await admin('/admin/overview'); ok(r.s === 200 && r.d.funnel.length === 21 && r.d.totals.users >= 3, 'admin overview lists 21 exams');
+r = await admin('/admin/overview'); ok(r.s === 200 && r.d.funnel.length === EXAMS.length && r.d.totals.users >= 3, 'admin overview lists every exam');
 ok(r.d.hardest.length > 0, 'hardest questions computed');
 r = await admin('/admin/users'); const stu = r.d.users.find((x) => x.email === email);
-ok(stu && stu.parts_passed === 18 && stu.finals_passed === 3, 'admin list shows 18 parts + 3 finals passed');
+ok(stu && stu.parts_passed === PARTS.length && stu.finals_passed === SECTIONS.length, 'admin list shows all parts and finals passed');
 const o = r.d.users.find((x) => x.email === `o${stamp}@example.com`);
 r = await admin(`/admin/users/${o.id}/unlock`, 'POST', { exam: 7, unlock: true }); ok(r.s === 200, 'admin unlocks Part 2.1 for another user');
 r = await other('/content/7'); ok(r.s === 200, 'override opens Part 2.1');
 r = await other('/content/8'); ok(r.s === 403, 'override opens only that part');
 r = await admin(`/admin/users/${o.id}/unlock`, 'POST', { exam: 7, unlock: false }); r = await other('/content/7'); ok(r.s === 403, 'override removal locks again');
 r = await admin(`/admin/users/${o.id}/unlock`, 'POST', { exam: 999, unlock: true }); ok(r.s === 400, 'invalid unlock id rejected');
-r = await admin(`/admin/users/${stu.id}`); ok(r.s === 200 && r.d.exams.length === 21, 'admin user detail lists 21 exams');
+r = await admin(`/admin/users/${stu.id}`); ok(r.s === 200 && r.d.exams.length === EXAMS.length, 'admin user detail lists every exam');
 r = await admin('/admin/users/1/delete', 'POST'); ok(r.s === 400, 'admin cannot delete self');
 r = await admin(`/admin/users/${stu.id}/reset-progress`, 'POST'); r = await u1('/progress'); ok(r.d.exams.filter((x) => x.unlocked).length === 1, 'reset progress re-locks everything');
 r = await admin(`/admin/users/${stu.id}/delete`, 'POST'); ok(r.s === 200, 'admin deletes user');

@@ -1,0 +1,40 @@
+<div class="crumb">Section 4 · Part 1 of 5</div>
+    <h1>Workspaces &amp; roles</h1>
+    <p class="lead">A workspace is where a team builds and manages Power BI content. Roles decide who can do what.</p>
+
+    <h2>1. What a workspace holds</h2>
+    <ul>
+      <li>Semantic models (datasets), reports, dashboards, dataflows, paginated reports (and other Fabric items).</li>
+      <li><b>My workspace</b> is your personal area: no collaboration and no apps. For teamwork create a <b>workspace</b>: <i>Workspaces → New workspace</i> (name, description, contact list, <b>license mode</b>: Pro, Premium per user, Premium capacity or Fabric).</li>
+      <li>Publish from Desktop with <b>Home → Publish</b>, or upload a <code>.pbix</code> in the service (<i>New → Upload a file</i>). Publishing again with the same name <b>replaces</b> the model and report.</li>
+      <li><b>Lineage view</b> shows how data sources, dataflows, semantic models and reports depend on each other.</li>
+    </ul>
+
+    <h2>2. Workspace roles</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Role</th><th>Can do</th><th>Cannot do</th></tr>
+      <tr><td><b>Admin</b></td><td>Everything: delete the workspace, add or remove <b>anyone including other admins</b></td><td>—</td></tr>
+      <tr><td><b>Member</b></td><td>Add members with a lower or equal role (members, contributors, viewers), publish / update the app, share items, create and edit content</td><td>Delete the workspace, add admins</td></tr>
+      <tr><td><b>Contributor</b></td><td>Create, edit and delete content, publish reports, schedule refresh</td><td>Publish or update the app, manage access</td></tr>
+      <tr><td><b>Viewer</b></td><td>View and interact with reports and dashboards</td><td>Edit or create content. <b>Row-level security applies</b> to viewers</td></tr>
+    </table></div>
+    <ul>
+      <li>Assign <b>security groups</b> (Microsoft Entra / Microsoft 365 groups) instead of individuals: easier to manage.</li>
+      <li>Give the <b>least privilege</b> that still lets the person do their job.</li>
+    </ul>
+
+    <h2>3. Licenses</h2>
+    <ul>
+      <li><b>Free</b>: personal use in My workspace; cannot consume shared content unless the workspace is on Premium / Fabric capacity.</li>
+      <li><b>Pro</b>: share, collaborate and publish to workspaces. Viewers also need Pro on shared capacity.</li>
+      <li><b>Premium per user (PPU)</b> / <b>Premium or Fabric capacity</b>: larger models, more refreshes, deployment pipelines, paginated reports. On capacity-backed workspaces free users can view content.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>RLS restricts <b>Viewers</b> only. Workspace <b>Admins, Members and Contributors</b> can edit the model, so RLS does <b>not</b> filter what they see. To test RLS as a real restricted user, make them a Viewer.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Admin &gt; Member &gt; Contributor &gt; Viewer; only Admin adds admins; Contributors can’t publish the app.</li>
+        <li>Add groups, not people, and use the lowest role that works.</li>
+        <li>Viewers on shared capacity need a Pro license.</li>
+      </ul>
+    </div>

@@ -1,0 +1,42 @@
+<div class="crumb">Section 4 · Part 3 of 5</div>
+    <h1>Row-level security</h1>
+    <p class="lead">One model, one report, but each person sees only the rows they are allowed to see.</p>
+
+    <h2>1. Create and test roles</h2>
+    <ol>
+      <li><b>Power BI Desktop → Modeling → Manage roles → Create</b>. Name the role.</li>
+      <li>Select a table and write a <b>DAX filter</b> that returns TRUE or FALSE for each row.</li>
+      <li><b>Modeling → View as</b>: pick the role (and optionally another user) to test the report as that person.</li>
+      <li>Publish. In the <b>Power BI service</b>: semantic model → <b>Security</b> → add <b>users or groups</b> to each role (then test with “Test as role”).</li>
+    </ol>
+<pre class="code"><span class="c">// static: a role for one region</span>
+[Region] = <span class="s">"East"</span>
+
+<span class="c">// dynamic: one role for everybody; rows are matched to the signed-in user</span>
+[ManagerEmail] = <span class="k">USERPRINCIPALNAME</span> ()</pre>
+
+    <h2>2. Static vs dynamic</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th></th><th>Static RLS</th><th>Dynamic RLS</th></tr>
+      <tr><td><b>Filter</b></td><td>Hard-coded value</td><td>Uses <code>USERPRINCIPALNAME()</code> (or <code>USERNAME()</code>) and a mapping column / <b>security table</b></td></tr>
+      <tr><td><b>Roles needed</b></td><td>One per group of rows</td><td>One role for everyone</td></tr>
+      <tr><td><b>Maintenance</b></td><td>Edit roles for every change</td><td>Update the data in the security table</td></tr>
+    </table></div>
+
+    <h2>3. How filters behave</h2>
+    <ul>
+      <li>A filter on a <b>dimension</b> table flows to related <b>fact</b> tables through the one-to-many relationship (filter direction). To filter the other way enable <b>Apply security filter in both directions</b> on the relationship.</li>
+      <li>If a user is in <b>several roles</b>, they see the <b>union</b> of the rows allowed by those roles.</li>
+      <li>RLS works with Import and DirectQuery, and also applies to Analyze in Excel, apps and embedded reports.</li>
+      <li>RLS applies to workspace <b>Viewers</b> and to users who get content via an <b>app</b> or a share link. It does <b>not</b> apply to Admins, Members and Contributors.</li>
+      <li><b>Object-level security</b> (OLS) hides tables or columns from a role; it is configured with an external tool such as Tabular Editor.</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>Adding a user in Desktop’s Manage roles dialog does nothing: <b>members are assigned in the service</b>. And testing as a workspace Admin always shows <i>all</i> rows.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Manage roles + DAX filter, test with View as, assign members in the service.</li>
+        <li>Dynamic RLS = <code>USERPRINCIPALNAME()</code> + a security table.</li>
+        <li>Multiple roles = union; RLS affects Viewers, not Admin / Member / Contributor.</li>
+      </ul>
+    </div>

@@ -1,0 +1,47 @@
+<div class="crumb">Section 4 · Part 4 of 5</div>
+    <h1>Refresh &amp; gateways</h1>
+    <p class="lead">Published data goes stale unless you refresh it. Know what needs a refresh, and what needs a gateway.</p>
+
+    <h2>1. What needs refreshing?</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Storage mode</th><th>Refresh</th></tr>
+      <tr><td><b>Import</b></td><td>Needs <b>scheduled</b> or manual refresh (the copy of the data is in the model)</td></tr>
+      <tr><td><b>DirectQuery / live connection</b></td><td><b>No data refresh</b>: queries go to the source. Dashboard tiles are cached and refreshed periodically; <i>auto page refresh</i> can update visuals</td></tr>
+    </table></div>
+    <ul>
+      <li>Configure in the service: semantic model → <b>Settings → Scheduled refresh</b> (time zone, times, failure notifications). <b>Refresh now</b> runs it immediately.</li>
+      <li>Limits: about <b>8 refreshes per day</b> with Pro, up to <b>48</b> with Premium / PPU / Fabric capacity.</li>
+      <li>Credentials and privacy levels are set under <b>Data source credentials</b> in the model settings.</li>
+      <li>Parameters can be edited in the service under <b>Parameters</b>.</li>
+    </ul>
+
+    <h2>2. On-premises data gateway</h2>
+    <p>A gateway is software installed on a machine inside your network that lets the service reach <b>on-premises</b> sources (SQL Server on a server, file shares). Cloud sources (Azure SQL, SharePoint Online) do <b>not</b> need one.</p>
+    <div class="tblw"><table class="tbl">
+      <tr><th></th><th>Standard (enterprise) mode</th><th>Personal mode</th></tr>
+      <tr><td><b>Users</b></td><td>Many users and reports; can be clustered</td><td>One user</td></tr>
+      <tr><td><b>Supports</b></td><td>Import, <b>DirectQuery</b> and live connections</td><td><b>Import only</b></td></tr>
+      <tr><td><b>Install on</b></td><td>A shared server that is always on</td><td>A personal computer</td></tr>
+    </table></div>
+    <p>After installing: add the <b>data source</b> to the gateway (or map the model’s source to it) and supply credentials, then schedule the refresh.</p>
+
+    <h2>3. Incremental refresh</h2>
+    <p>For large tables, refresh only recent data instead of everything.</p>
+    <ol>
+      <li>In Power Query create two <b>Date/Time</b> parameters named exactly <code>RangeStart</code> and <code>RangeEnd</code>.</li>
+      <li>Filter the table’s date column: <code>&gt;= RangeStart</code> and <code>&lt; RangeEnd</code> (ideally folded to the source).</li>
+      <li>Right-click the table → <b>Incremental refresh</b>: choose how much history to store and how recent a period to refresh.</li>
+      <li>Publish; the service creates partitions and refreshes only the newest.</li>
+    </ol>
+
+    <h2>4. Dataflows</h2>
+    <p>A <b>dataflow</b> is Power Query running in the service. It stores cleaned data that many semantic models can reuse, with its own refresh schedule.</p>
+
+    <div class="note trap"><b class="t">Exam trap</b>DirectQuery needs <b>no scheduled refresh</b> but an on-prem source still needs a <b>standard</b> gateway. A personal gateway cannot serve DirectQuery. <code>RangeStart</code> / <code>RangeEnd</code> must be Date/Time and spelled exactly.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Import = refresh; DirectQuery = no refresh. 8/day Pro, 48/day Premium.</li>
+        <li>On-premises source → gateway (standard for shared use and DirectQuery).</li>
+        <li>Incremental refresh = RangeStart + RangeEnd + a policy.</li>
+      </ul>
+    </div>

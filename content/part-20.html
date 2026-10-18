@@ -1,0 +1,39 @@
+<div class="crumb">Section 4 · Part 2 of 5</div>
+    <h1>Share, apps &amp; dashboards</h1>
+    <p class="lead">Pick the right way to get content to the right people: roles, share links, apps or subscriptions.</p>
+
+    <h2>1. Ways to distribute content</h2>
+    <div class="tblw"><table class="tbl">
+      <tr><th>Method</th><th>Best for</th></tr>
+      <tr><td><b>Workspace role</b></td><td>People who <i>build or edit</i> the content (collaborators)</td></tr>
+      <tr><td><b>Share</b> (report / dashboard link)</td><td>A few people, ad hoc. Options: people in your org or specific people; <b>Allow recipients to share</b>; <b>Allow recipients to build content</b></td></tr>
+      <tr><td><b>App</b></td><td>A curated, read-only bundle of reports and dashboards for a <b>wide audience</b>. Publish from the workspace; use <b>audiences</b> so groups see different content; update the app to push changes</td></tr>
+      <tr><td><b>Subscription</b></td><td>An email snapshot of a report page or dashboard on a schedule (and a link back)</td></tr>
+      <tr><td><b>Analyze in Excel / Export</b></td><td>Pivot tables on the model; export to PDF, PowerPoint, CSV, Excel (subject to tenant settings and sensitivity labels)</td></tr>
+      <tr><td><b>Embed</b> (Teams, SharePoint, secure embed)</td><td>Show reports inside other tools with sign-in</td></tr>
+      <tr><td><b>Publish to web</b></td><td>Public, <b>no authentication</b>: never use for confidential data</td></tr>
+    </table></div>
+    <p><b>Build permission</b> on a semantic model lets people create their own reports from it (and use Analyze in Excel) without editing the model.</p>
+
+    <h2>2. Dashboards</h2>
+    <ul>
+      <li>A dashboard is a <b>single page of tiles</b> created in the <b>Power BI service</b> (not in Desktop).</li>
+      <li>Tiles are <b>pinned</b> from reports (a visual or a live page), Q&amp;A, Excel or other sources. One dashboard can combine tiles from <b>multiple reports and semantic models</b>.</li>
+      <li>Selecting a tile opens its source report. Use the <b>Q&amp;A box</b> to ask questions in plain language and pin the answer.</li>
+      <li>Dashboards can have a <b>mobile view</b> and can be shared or put in an app.</li>
+    </ul>
+
+    <h2>3. Data alerts and subscriptions</h2>
+    <ul>
+      <li><b>Data alerts</b> are set on dashboard tiles that show a single number: <b>card, gauge and KPI</b> tiles. You choose a threshold (above / below) and get a notification (optionally triggers Power Automate).</li>
+      <li><b>Subscriptions</b> email a report page snapshot daily, weekly or after the data refresh (on capacity).</li>
+    </ul>
+
+    <div class="note trap"><b class="t">Exam trap</b>Large audience, read-only, different groups see different content → <b>app with audiences</b>. Create their own reports from your model → grant <b>Build</b>. Alert when a number crosses a threshold → <b>dashboard tile alert</b>, not a report subscription.</div>
+    <div class="note"><b class="t">Key takeaways</b>
+      <ul class="check">
+        <li>Roles for collaborators, apps for audiences, share links for ad hoc access.</li>
+        <li>Dashboards live only in the service and combine tiles from many sources.</li>
+        <li>Alerts work on card, gauge and KPI tiles; “Publish to web” is public.</li>
+      </ul>
+    </div>
